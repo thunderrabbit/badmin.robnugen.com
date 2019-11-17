@@ -1,0 +1,8 @@
+# https://help.dreamhost.com/hc/en-us/articles/115000695551-Installing-and-using-virtualenv-with-Python-3
+
+# To set up this environment I did this
+# virtualenv -p /home/thundergoblin/opt/python-3.8.0/bin/python3 image_renamer
+
+
+# To activate the new virtual environment, run this via ./activater.sh
+# source image_renamer/bin/activate
