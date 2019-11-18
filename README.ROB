@@ -1,3 +1,16 @@
+Hey future Rob
+
+I was thinking  about writing an easy CGI script to allow renaming of imagesif I can see the thumbnails.
+
+Like array of thumbnails and can change the image names if I like.  Name changes would be reflected on disk.
+
+This is overkill and starting from scratch, so I am going to chmod 0 everything.
+
+Feel free to wipe or defrost or whateva.  Probably wipe.
+
+ - Nov 2019 Rob
+ 
+
 # https://help.dreamhost.com/hc/en-us/articles/115000695551-Installing-and-using-virtualenv-with-Python-3
 
 # To set up this environment I did this
