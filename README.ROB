@@ -4,18 +4,4 @@ I was thinking  about writing an easy CGI script to allow renaming of imagesif I
 
 Like array of thumbnails and can change the image names if I like.  Name changes would be reflected on disk.
 
-This is overkill and starting from scratch, so I am going to chmod 0 everything.
-
-Feel free to wipe or defrost or whateva.  Probably wipe.
-
- - Nov 2019 Rob
- 
-
-# https://help.dreamhost.com/hc/en-us/articles/115000695551-Installing-and-using-virtualenv-with-Python-3
-
-# To set up this environment I did this
-# virtualenv -p /home/thundergoblin/opt/python-3.8.0/bin/python3 image_renamer
-
-
-# To activate the new virtual environment, run this via ./activater.sh
-# source image_renamer/bin/activate
+Instead of starting from scratch, I will try the code at https://github.com/samayo/bulletproof
