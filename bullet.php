@@ -15,16 +15,34 @@ function print_rob($object, $exit = true) {
     }
 }
 
-$image = new Bulletproof\Image($_FILES);
+$images = new Bulletproof\Image($_FILES);
 
-  $image->setName("honkey")
-        ->setStorage("/home/thundergoblin/b.robnugen.com/blog/");
+print_rob($_REQUEST,0);
+// We can easily loop through array $_POST['image_name']
+// but cannot as easily loop through an array of $_FILES['pictures']  (see commit c1f62fab9585ebeecec5)
+foreach($_POST['image_name'] as $key => $image_name)
+{
+  print_rob("key " . $key,0);
+  print_rob("image name: ". $image_name,0);
+  print_rob($_FILES["pictures".$key],0);
+  print_rob("about to get key " . "pictures".$key,0);
+  if($images["pictures".$key]){
+    print_rob("key be pictures".$key,0);
+    $images->setName($image_name)
+          ->setStorage("/home/thundergoblin/b.robnugen.com/tmp");  // no trailing slash
 
-if($image["pictures"]){
-  $upload = $image->upload();
+    $upload = $images->upload();
+    print_rob("hellolololo" . __LINE__,0);
+    print_rob($upload->getPath(),0);
+  }
+}
+print_rob("ai");
+
+
+if($images["pictures"]){
+  $upload = $images->upload();
 
   if($upload){
-    echo "hellolololo";
     echo $upload->getFullPath(); // uploads/cat.gif
     echo $image->getName(); // samayo
     echo $image->getMime(); // gif
@@ -32,7 +50,7 @@ if($image["pictures"]){
     echo $image->getFullPath(); // avatars/samayo.gif
   }else{
     echo "errrrrored";
-    echo $image->getError();
+    echo $images->getError();
   }
 } else {
   echo "<br>apparently nothing in image['pictures']";
