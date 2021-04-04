@@ -5,7 +5,6 @@ require_once  "/home/thundergoblin/bulletproof/src/bulletproof.php";
 $image = new Bulletproof\Image($_FILES);
 
   $image->setName("honkey")
-        ->setMime(["png","gif","jpg"])
         ->setStorage("/home/thundergoblin/b.robnugen.com/blog/");
 
 if($image["pictures"]){
