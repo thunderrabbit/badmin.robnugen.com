@@ -2,6 +2,19 @@
 
 require_once  "/home/thundergoblin/bulletproof/src/bulletproof.php";
 
+function print_rob($object, $exit = true) {
+    echo("<pre>");
+    if(is_object($object) && method_exists($object, "toArray")) {
+        echo "ResultSet => ".print_r($object->toArray(), true);
+    } else {
+        print_r($object);
+    }
+    echo("</pre>");
+    if($exit) {
+        exit;
+    }
+}
+
 $image = new Bulletproof\Image($_FILES);
 
   $image->setName("honkey")
