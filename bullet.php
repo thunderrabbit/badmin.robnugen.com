@@ -34,6 +34,10 @@ if($image["pictures"]){
     echo "errrrrored";
     echo $image->getError();
   }
+} else {
+  echo "<br>apparently nothing in image['pictures']";
+  echo "<br>so what about files?<br>";
+  print_rob($_FILES);
 }
 
   ?>
