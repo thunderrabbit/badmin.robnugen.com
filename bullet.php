@@ -9,7 +9,7 @@ $image = new Bulletproof\Image($_FILES);
         ->setStorage("/home/thundergoblin/b.robnugen.com/blog/");
 
 if($image["pictures"]){
-  $upload = $image->upload(); 
+  $upload = $image->upload();
 
   if($upload){
     echo "hellolololo";
@@ -20,7 +20,7 @@ if($image["pictures"]){
     echo $image->getFullPath(); // avatars/samayo.gif
   }else{
     echo "errrrrored";
-    echo $image->getError(); 
+    echo $image->getError();
   }
 }
 
