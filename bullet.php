@@ -41,10 +41,3 @@ foreach($_POST['image_name'] as $key => $image_name)
     print_rob($_FILES["pictures".$key]);
   }
 }
-print_rob("ai");
-
-
-
-  ?>
-
-brace yourself, fool.
