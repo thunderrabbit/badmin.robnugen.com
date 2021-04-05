@@ -35,7 +35,7 @@ foreach($_POST['image_name'] as $key => $image_name)
     print_rob($upload->getPath(),0);
   } else if(!empty($save_image_name)) {
     // (There was an image name but no file)
-    echo "<br>apparently nothing in images[\"pictures\".$key]";
+    echo "<br>apparently nothing in images[\"pictures\".$key], but we have filename $save_image_name";
     echo "<br>so what about files?<br>";
     print_rob($_FILES["pictures".$key]);
   }
