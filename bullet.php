@@ -14,12 +14,24 @@ function print_rob($object, $exit = true) {
         exit;
     }
 }
-
+/** Use $image_name for image name or fallback to file name (without extension)
+ *
+ * @param string $image_name preferred name (sent by user)
+ * @param array $image_info array of file info as sent by <input type="file" />
+ *
+ */
 function create_image_name($image_name, $image_info)
 {
+  // prefer name typed by user (allows naming files here without renaming on device)
   $return_val = $image_name ? $image_name : pathinfo($image_info['name'], PATHINFO_FILENAME);
+
+  // TODO: convert spaces to underscores
+
+  // TODO maybe convert to lowercase??
+
   return $return_val;
 }
+
 $images = new Bulletproof\Image($_FILES);
 
 // We can easily loop through array $_POST['image_name']
