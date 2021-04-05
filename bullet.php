@@ -32,9 +32,23 @@ function create_image_name($image_name, $image_info)
 
   // TODO maybe convert to lowercase??
 
+  $return_val = prepend_date_prn($return_val);
+
   return $return_val;
 }
 
+function prepend_date_prn($return_val)
+{
+  $this_year = date("Y");
+
+  // /// PHP 8 version:  if(!empty($return_val) && !str_starts_with($return_val,$this_year))
+  if(!empty($return_val) && strpos($return_val,$this_year) === false)
+  {
+    $return_val = date("Y_M_d_") . $return_val;   // e.g. 2021_Apr_05_return_val
+  }
+  $return_val = mb_strtolower($return_val);       // get rid of capital month from "M" in date
+  return $return_val;
+}
 $storage_directory = determine_storage_directory($_REQUEST["save_to"],$_REQUEST["sub_dir"]);
 print_rob($storage_directory,0);
 
