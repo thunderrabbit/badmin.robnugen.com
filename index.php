@@ -3,11 +3,12 @@ Hello
 <form method="POST" action="bullet.php" enctype="multipart/form-data" >
   <input type="hidden" name="MAX_FILE_SIZE" value="5000000"/>
   <select name="save_to">
+    <option value="tmp">tmp</option>
     <option value="quests">quests</option>
     <option value="journal">journal</option>
     <option value="blog">blog</option>
   </select> / <input type="text" name="sub_dir" />
-  
+
   <div>
     <input type="file" name="pictures1" />
     <input type="text" name="image_name[1]" />

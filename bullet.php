@@ -89,6 +89,7 @@ function determine_storage_directory($save_to, $sub_dir)
     "journal" => "/home/thundergoblin/b.robnugen.com/journal/2021",
     "quests" => "/home/thundergoblin/b.robnugen.com/quests/walk-to-niigata/2021/en_route",
     "blog" => "/home/thundergoblin/b.robnugen.com/blog/2021",
+    "tmp" => "/home/thundergoblin/b.robnugen.com/tmp",
   );
   // TODO: note these assume the directory separator is / (slash)
   $out_dir = $location_determination[$save_to] . "/" . $sub_dir; // append $sub_dir to requested location
