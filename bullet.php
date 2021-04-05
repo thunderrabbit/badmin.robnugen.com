@@ -2,9 +2,11 @@
 
 require_once  "/home/thundergoblin/bulletproof/src/bulletproof.php";
 
-function print_rob($object, $exit = true) {
+function print_rob($object, $exit = true)
+{
     echo("<pre>");
-    if(is_object($object) && method_exists($object, "toArray")) {
+    if(is_object($object) && method_exists($object, "toArray"))
+    {
         echo "ResultSet => ".print_r($object->toArray(), true);
     } else {
         print_r($object);
@@ -14,6 +16,7 @@ function print_rob($object, $exit = true) {
         exit;
     }
 }
+
 /** Use $image_name for image name or fallback to file name (without extension)
  *
  * @param string $image_name preferred name (sent by user)
@@ -40,13 +43,16 @@ foreach($_POST['image_name'] as $key => $image_name)
 {
   // prefer image name sent in field, and falls back to name of image file
   $save_image_name = create_image_name($image_name,$_FILES["pictures".$key]);
-  if($images["pictures".$key]){
+  if($images["pictures".$key])
+  {
     $images->setName($save_image_name)
            ->setStorage("/home/thundergoblin/b.robnugen.com/tmp");  // no trailing slash
 
     $upload = $images->upload();
     print_rob($upload->getPath(),0);
-  } else if(!empty($save_image_name)) {
+  }
+  else if(!empty($save_image_name))
+  {
     // (There was an image name but no file)
     echo "<br>apparently nothing in images[\"pictures\".$key], but we have filename $save_image_name";
     echo "<br>so what about files?<br>";
