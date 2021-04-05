@@ -28,7 +28,8 @@ function create_image_name($image_name, $image_info)
   // prefer name typed by user (allows naming files here without renaming on device)
   $return_val = $image_name ? $image_name : pathinfo($image_info['name'], PATHINFO_FILENAME);
 
-  // TODO: convert spaces to underscores
+  // convert spaces to underscores
+  $return_val = preg_replace('/\s+/', '_', $return_val);   //  https://stackoverflow.com/a/20871407/194309
 
   // TODO maybe convert to lowercase??
 
