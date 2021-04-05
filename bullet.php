@@ -26,8 +26,9 @@ $images = new Bulletproof\Image($_FILES);
 // but cannot as easily loop through an array of $_FILES['pictures']  (see commit c1f62fab9585ebeecec5)
 foreach($_POST['image_name'] as $key => $image_name)
 {
+  // prefer image name sent in field, and falls back to name of image file
+  $save_image_name = create_image_name($image_name,$_FILES["pictures".$key]);
   if($images["pictures".$key]){
-    $save_image_name = create_image_name($image_name,$_FILES["pictures".$key]);
     $images->setName($save_image_name)
            ->setStorage("/home/thundergoblin/b.robnugen.com/tmp");  // no trailing slash
 
