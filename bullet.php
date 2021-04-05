@@ -35,6 +35,8 @@ function create_image_name($image_name, $image_info)
   return $return_val;
 }
 
+$storage_directory = determine_storage_directory($_REQUEST["save_to"],$_REQUEST["sub_dir"]);
+
 $images = new Bulletproof\Image($_FILES);
 
 // We can easily loop through array $_POST['image_name']
@@ -46,7 +48,7 @@ foreach($_POST['image_name'] as $key => $image_name)
   if($images["pictures".$key])
   {
     $images->setName($save_image_name)
-           ->setStorage("/home/thundergoblin/b.robnugen.com/tmp");  // no trailing slash
+           ->setStorage($storage_directory);  // no trailing slash
 
     $upload = $images->upload();
     print_rob($upload->getPath(),0);
@@ -58,4 +60,22 @@ foreach($_POST['image_name'] as $key => $image_name)
     echo "<br>so what about files?<br>";
     print_rob($_FILES["pictures".$key]);
   }
+}
+
+function determine_storage_directory($save_to, $sub_dir)
+{
+  filter_var($save_to, FILTER_SANITIZE_STRING);
+  print_rob($save_to,0);
+  filter_var($sub_dir, FILTER_SANITIZE_STRING);
+  print_rob($sub_dir,0);
+  $location_determination = array(
+    // no trailing slash
+    "journal" => "/home/thundergoblin/b.robnugen.com/journal/2021",
+    "quests" => "/home/thundergoblin/b.robnugen.com/quests/walk-to-niigata/2021/en_route",
+    "blog" => "/home/thundergoblin/b.robnugen.com/blog/2021",
+  );
+  // TODO: note these assume the directory separator is / (slash)
+  $out_dir = $location_determination[$save_to] . "/" . $sub_dir; // append $sub_dir to requested location
+  $out_dir = rtrim($out_dir, '/');  // remove trailing slash (in case $sub_dir is empty)
+  print_rob("plan to save to " . $out_dir);
 }
