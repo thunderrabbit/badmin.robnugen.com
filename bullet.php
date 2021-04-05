@@ -61,13 +61,15 @@ foreach($_POST['image_name'] as $key => $image_name)
 {
   // prefer image name sent in field, and falls back to name of image file
   $save_image_name = create_image_name($image_name,$_FILES["pictures".$key]);
-  if($images["pictures".$key])
+  if($images["pictures".$key])    // Accessing the key of the image actually tells $images what image to work with
   {
-    $images->setName($save_image_name)
+    $images->setName($save_image_name)             // name of full-sized image
            ->setStorage($storage_directory,0755);  // 0755 = permissions of directories
 
-    $upload = $images->upload();
-    print_rob($upload->getPath(),0);
+    $upload = $images->upload();                   // upload full-sized image
+    $image_path = $upload->getPath();              // full path of full-sized image so we can create embed code
+    print_rob($image_path,0);
+
   }
   else if(!empty($save_image_name))
   {
