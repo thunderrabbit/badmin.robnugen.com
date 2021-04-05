@@ -67,9 +67,13 @@ foreach($_POST['image_name'] as $key => $image_name)
            ->setStorage($storage_directory,0755);  // 0755 = permissions of directories
 
     $upload = $images->upload();                   // upload full-sized image
-    $image_path = $upload->getPath();              // full path of full-sized image so we can create embed code
-    print_rob($image_path,0);
-
+    if($upload)
+    {
+      $image_path = $upload->getPath();              // full path of full-sized image so we can create embed code
+      print_rob($image_path,0);
+      $thumbpath = create_thumbnail($images);
+      print_rob($thumbpath,0);
+    }
   }
   else if(!empty($save_image_name))
   {
@@ -77,6 +81,24 @@ foreach($_POST['image_name'] as $key => $image_name)
     echo "<br>apparently nothing in images[\"pictures\".$key], but we have filename $save_image_name";
     echo "<br>so what about files?<br>";
     print_rob($_FILES["pictures".$key]);
+  }
+}
+
+function create_thumbnail(\Bulletproof\Image $images)
+{
+  // Create a thumbnail in the `thumbs/` directory where the full sized file was created
+  $cats = $images->getStorage();
+  print_rob($cats."/thumbs",0);
+  $images->setStorage($cats."/thumbs",0755);
+  $upload = $images->upload();                   // upload full-sized image
+  if($upload)
+  {
+    $image_path = $upload->getPath();              // full path of full-sized image so we can create embed code
+    return $image_path;
+  }
+  else
+  {
+    return null;
   }
 }
 
