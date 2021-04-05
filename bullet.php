@@ -36,6 +36,7 @@ function create_image_name($image_name, $image_info)
 }
 
 $storage_directory = determine_storage_directory($_REQUEST["save_to"],$_REQUEST["sub_dir"]);
+print_rob($storage_directory,0);
 
 $images = new Bulletproof\Image($_FILES);
 
@@ -48,7 +49,7 @@ foreach($_POST['image_name'] as $key => $image_name)
   if($images["pictures".$key])
   {
     $images->setName($save_image_name)
-           ->setStorage($storage_directory);  // no trailing slash
+           ->setStorage($storage_directory,0755);  // 0755 = permissions of directories
 
     $upload = $images->upload();
     print_rob($upload->getPath(),0);
@@ -77,5 +78,5 @@ function determine_storage_directory($save_to, $sub_dir)
   // TODO: note these assume the directory separator is / (slash)
   $out_dir = $location_determination[$save_to] . "/" . $sub_dir; // append $sub_dir to requested location
   $out_dir = rtrim($out_dir, '/');  // remove trailing slash (in case $sub_dir is empty)
-  print_rob("plan to save to " . $out_dir);
+  return $out_dir;
 }
