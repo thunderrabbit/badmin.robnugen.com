@@ -54,7 +54,6 @@ function prepend_date_prn($return_val)
 $images = new \Bulletproof\Image($_FILES);
 
 $storage_directory = determine_storage_directory($_REQUEST["save_to"],$_REQUEST["sub_dir"]);
-print_rob($storage_directory,0);
 
 // Create a thumbnail in the `thumbs/` directory where the full sized file was created
 $thumb_dirname = $storage_directory . "/thumbs/";   // hardcoding thumbs/, because that is the convention on b.robnugen.com
