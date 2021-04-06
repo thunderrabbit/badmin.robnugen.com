@@ -126,7 +126,7 @@ function create_thumbnail(string $image_path, string $subdir_for_thumbs)
   }
 }
 
-function determine_storage_directory($save_to, $sub_dir)
+function determine_storage_directory(string $save_to, string $sub_dir)
 {
   filter_var($save_to, FILTER_SANITIZE_STRING);
   // print_rob($save_to,0);
