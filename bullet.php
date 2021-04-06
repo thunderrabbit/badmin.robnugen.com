@@ -76,6 +76,10 @@ foreach($_POST['image_name'] as $key => $image_name)
     {
       $image_path = $upload->getPath();              // full path of full-sized image so we can create embed code
       $thumb_path = create_thumbnail($image_path,$thumb_dirname_created);
+      if($image_path && $thumb_path)
+      {
+        display_embeds($image_path, $thumb_path);   // so I can post from my phone
+      }
     }
   }
   else if(!empty($save_image_name))
@@ -140,4 +144,25 @@ function determine_storage_directory($save_to, $sub_dir)
   $out_dir = $location_determination[$save_to] . "/" . $sub_dir; // append $sub_dir to requested location
   $out_dir = rtrim($out_dir, '/');  // remove trailing slash (in case $sub_dir is empty)
   return $out_dir;
+}
+
+function display_embeds(string $image_path, string $thumb_path)
+{
+  $alt_text = alttextify($image_path);
+  $image_url = urlify($image_path);
+  $thumb_url = urlify($thumb_path);
+
+$embed = sprintf("[![%s](%s)](%s)",$alt_text,$image_url,$thumb_url);
+
+    print_rob($embed,0);
+}
+
+function alttextify(string $image_path)
+{
+  return str_replace('_',' ',pathinfo($image_path,PATHINFO_FILENAME));
+}
+
+function urlify(string $image_path)
+{
+  return str_replace('home/thundergoblin','',$image_path);
 }
