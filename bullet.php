@@ -151,7 +151,7 @@ function display_embeds(string $image_path, string $thumb_path)
   $image_url = urlify($image_path);
   $thumb_url = urlify($thumb_path);
 
-$embed = sprintf("[![%s](%s)](%s)",$alt_text,$image_url,$thumb_url);
+$embed = sprintf("[![%s](%s)](%s)",$alt_text,$thumb_url,$image_url);
 
     print_rob($embed,0);
 }
