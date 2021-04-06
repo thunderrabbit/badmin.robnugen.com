@@ -1,6 +1,7 @@
 <?php
 
 require_once  "/home/thundergoblin/bulletproof/src/bulletproof.php";
+require_once  "/home/thundergoblin/bulletproof/src/utils/func.image-resize.php";
 
 function print_rob($object, $exit = true)
 {
@@ -50,10 +51,14 @@ function prepend_date_prn($return_val)
   $return_val = mb_strtolower($return_val);       // get rid of capital month from "M" in date
   return $return_val;
 }
+$images = new \Bulletproof\Image($_FILES);
+
 $storage_directory = determine_storage_directory($_REQUEST["save_to"],$_REQUEST["sub_dir"]);
 print_rob($storage_directory,0);
 
-$images = new Bulletproof\Image($_FILES);
+// Create a thumbnail in the `thumbs/` directory where the full sized file was created
+$thumb_dirname = $storage_directory . "/thumbs/";   // hardcoding thumbs/, because that is the convention on b.robnugen.com
+$thumb_dirname_created = $images->createStorage($thumb_dirname,0755);
 
 // We can easily loop through array $_POST['image_name']
 // but cannot as easily loop through an array of $_FILES['pictures']  (see commit c1f62fab9585ebeecec5)
@@ -67,12 +72,10 @@ foreach($_POST['image_name'] as $key => $image_name)
            ->setStorage($storage_directory,0755);  // 0755 = permissions of directories
 
     $upload = $images->upload();                   // upload full-sized image
-    if($upload)
+    if($upload && $thumb_dirname_created)
     {
       $image_path = $upload->getPath();              // full path of full-sized image so we can create embed code
-      print_rob($image_path,0);
-      $thumbpath = create_thumbnail($images);
-      print_rob($thumbpath,0);
+      $thumb_path = create_thumbnail($image_path,$thumb_dirname_created);
     }
   }
   else if(!empty($save_image_name))
@@ -83,31 +86,45 @@ foreach($_POST['image_name'] as $key => $image_name)
     print_rob($_FILES["pictures".$key]);
   }
 }
-
-function create_thumbnail(\Bulletproof\Image $images)
+/**
+ * @param string $image_path full system path of actual full-sized image
+ *               (in the location you want it to stay permanently)
+ *               e.g. `/users/rob/b.robnugen.com/subject/path/year/topic/cool_filename.jpeg`
+ *
+ * @param string $subdir_for_thumbs name of sub directory to be created adjacent
+ *               to the actual full-sized image
+ *               e.g. `thumbs/`
+ *               (not yet sure about ending slash)
+ *
+ * @side_effect Creates thumbnail image
+ *               e.g. `/users/rob/b.robnugen.com/subject/path/year/topic/thumbs/cool_filename.jpeg`
+ *
+ *
+ */
+function create_thumbnail(string $image_path, string $subdir_for_thumbs)
 {
-  // Create a thumbnail in the `thumbs/` directory where the full sized file was created
-  $cats = $images->getStorage();
-  print_rob($cats."/thumbs",0);
-  $images->setStorage($cats."/thumbs",0755);
-  $upload = $images->upload();                   // upload full-sized image
-  if($upload)
-  {
-    $image_path = $upload->getPath();              // full path of full-sized image so we can create embed code
-    return $image_path;
-  }
-  else
-  {
-    return null;
-  }
+  $basename = basename($image_path);   // https://www.php.net/manual/en/function.pathinfo.php
+
+  $thumb_path = $subdir_for_thumbs . $basename;
+  // print_rob(__FUNCTION__ . ": " . $image_path,0);
+  // print_rob(__FUNCTION__ . ": " . $thumb_path,0);
+  copy($image_path,$thumb_path);
+  $gistp = getimagesize($thumb_path);
+  $imgWidth = $gistp[0];
+  $imgHeight = $gistp[1];
+  $mimeType = basename($gistp['mime']);  // basename("image/png") returns "png"
+
+  // hardcoding png just gets past the censors; resize somehow figures out the correct mime type
+  \Bulletproof\Utils\resize($thumb_path, $mimeType, $imgWidth, $imgHeight, 200, 200, true);
+  // return $image_path;
 }
 
 function determine_storage_directory($save_to, $sub_dir)
 {
   filter_var($save_to, FILTER_SANITIZE_STRING);
-  print_rob($save_to,0);
+  // print_rob($save_to,0);
   filter_var($sub_dir, FILTER_SANITIZE_STRING);
-  print_rob($sub_dir,0);
+  // print_rob($sub_dir,0);
   $location_determination = array(
     // no trailing slash
     "journal" => "/home/thundergoblin/b.robnugen.com/journal/2021",
