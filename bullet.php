@@ -103,20 +103,24 @@ foreach($_POST['image_name'] as $key => $image_name)
  */
 function create_thumbnail(string $image_path, string $subdir_for_thumbs)
 {
-  $basename = basename($image_path);   // https://www.php.net/manual/en/function.pathinfo.php
+  $basename = basename($image_path);   // cool_filename.png
 
-  $thumb_path = $subdir_for_thumbs . $basename;
-  // print_rob(__FUNCTION__ . ": " . $image_path,0);
-  // print_rob(__FUNCTION__ . ": " . $thumb_path,0);
-  copy($image_path,$thumb_path);
-  $gistp = getimagesize($thumb_path);
-  $imgWidth = $gistp[0];
-  $imgHeight = $gistp[1];
-  $mimeType = basename($gistp['mime']);  // basename("image/png") returns "png"
+  $thumb_path = $subdir_for_thumbs . $basename;   // /path/thumbs/cool_filename.png
+  copy($image_path,$thumb_path);       // OS make a copy of file
+  $thumb_info = getimagesize($thumb_path);  // get deets of file required by \resize()
+  $imgWidth = $thumb_info[0];
+  $imgHeight = $thumb_info[1];
+  $mimeType = basename($thumb_info['mime']);  // basename("image/png") returns "png"
 
-  // hardcoding png just gets past the censors; resize somehow figures out the correct mime type
-  \Bulletproof\Utils\resize($thumb_path, $mimeType, $imgWidth, $imgHeight, 200, 200, true);
-  // return $image_path;
+  $success = \Bulletproof\Utils\resize($thumb_path, $mimeType, $imgWidth, $imgHeight, 200, 200, true);
+  if($success)
+  {
+    return $thumb_path;
+  }
+  else
+  {
+    return false;
+  }
 }
 
 function determine_storage_directory($save_to, $sub_dir)
