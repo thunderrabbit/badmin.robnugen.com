@@ -1,4 +1,0 @@
-AuthType Basic
-AuthName "Restricted Content"
-AuthUserFile /home/thundergoblin/.htpasswd
-Require valid-user
