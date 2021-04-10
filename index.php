@@ -5,6 +5,7 @@ Hello
   <select name="save_to">
     <option value="tmp">tmp</option>
     <option value="quests">quests</option>
+    <option value="plan">walk plan</option>
     <option value="journal">journal</option>
     <option value="blog">blog</option>
   </select> / <input type="text" name="sub_dir" />

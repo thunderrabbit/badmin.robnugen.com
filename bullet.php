@@ -136,6 +136,7 @@ function determine_storage_directory(string $save_to, string $sub_dir)
     // no trailing slash
     "journal" => "/home/thundergoblin/b.robnugen.com/journal/2021",
     "quests" => "/home/thundergoblin/b.robnugen.com/quests/walk-to-niigata/2021/en_route",
+    "plan" => "/home/thundergoblin/b.robnugen.com/quests/walk-to-niigata/2021/route_plans",
     "blog" => "/home/thundergoblin/b.robnugen.com/blog/2021",
     "tmp" => "/home/thundergoblin/b.robnugen.com/tmp",
   );
