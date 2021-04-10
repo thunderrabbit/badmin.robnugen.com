@@ -96,7 +96,10 @@ foreach($_POST['image_name'] as $key => $image_name)
     echo "<br>so what about files?<br>";
     print_rob($_FILES["pictures".$key]);
   }
-}
+}  // end foreach($_POST['image_name'] as $key => $image_name)
+
+echo "<br><a href='https://badmin.robnugen.com'>https://badmin.robnugen.com</a>";
+
 /**
  * @param string $image_path full system path of actual full-sized image
  *               (in the location you want it to stay permanently)
