@@ -1,7 +1,15 @@
 <?php
 
+require_once  "/home/thundergoblin/bulletproof_config.php";
 require_once  "/home/thundergoblin/bulletproof/src/bulletproof.php";
 require_once  "/home/thundergoblin/bulletproof/src/utils/func.image-resize.php";
+
+// https://www.php.net/manual/en/function.password-verify.php
+if (!password_verify($_POST['password'], $bulletproof_password_hash)) {
+    echo 'Invalid password.';
+    exit;
+}
+
 
 function print_rob($object, $exit = true)
 {

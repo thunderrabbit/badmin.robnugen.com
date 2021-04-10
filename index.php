@@ -34,5 +34,10 @@ Hello
     <input type="file" name="pictures6" />
     <input type="text" name="image_name[6]" />
   </div>
-  <input type="submit" value="upload"/>
+  <div>
+    <label for="password">password</label> <input id="password" type="password" name="password" />
+  </div>
+  <div>
+    <input type="submit" value="upload"/>
+  </div>
 </form>
