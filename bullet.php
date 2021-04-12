@@ -154,7 +154,11 @@ function determine_storage_directory(string $save_to, string $sub_dir)
   // TODO: note these assume the directory separator is / (slash)
   $out_dir = $location_determination[$save_to] . "/" . $sub_dir; // append $sub_dir to requested location
   $out_dir = rtrim($out_dir, '/');  // remove trailing slash (in case $sub_dir is empty)
-  return $out_dir;
+
+  // convert spaces to underscores
+  $return_val = preg_replace('/\s+/', '_', $out_dir);   //  https://stackoverflow.com/a/20871407/194309
+
+  return $return_val;
 }
 
 function display_embeds(string $image_path, string $thumb_path)
