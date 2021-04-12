@@ -161,13 +161,19 @@ function determine_storage_directory(string $save_to, string $sub_dir)
   return $return_val;
 }
 
-function display_embeds(string $image_path, string $thumb_path)
+function process_paths(string $image_path, string $thumb_path)
 {
   $alt_text = alttextify($image_path);
   $image_url = urlify($image_path);
   $thumb_url = urlify($thumb_path);
+  return array($alt_text, $image_url, $thumb_url);
+}
 
-$embed = sprintf("[![%s](%s)](%s)",$alt_text,$thumb_url,$image_url);
+function display_embeds(string $image_path, string $thumb_path)
+{
+    list($alt_text, $image_url, $thumb_url) = process_paths($image_path, $thumb_path);
+
+    $embed = sprintf("[![%s](%s)](%s)",$alt_text,$thumb_url,$image_url);
 
     print_rob($embed,0);
 }
