@@ -10,6 +10,9 @@ if (!password_verify($_POST['password'], $bulletproof_password_hash)) {
     exit;
 }
 
+/* arrays which will store specific style of embed info for each image */
+$embed_markdowns = array();   // [![2021 apr 12 alt text](//b.robnugen.com/tmp/thumbs/2021_apr_12_alt_text.png)](//b.robnugen.com/tmp/2021_apr_12_alt_text.png)
+$embed_titles = array();
 
 function print_rob($object, $exit = true)
 {
@@ -85,7 +88,7 @@ foreach($_POST['image_name'] as $key => $image_name)
       $thumb_path = create_thumbnail($image_path,$thumb_dirname_created);
       if($image_path && $thumb_path)
       {
-        display_embeds($image_path, $thumb_path);   // so I can post from my phone
+        $embed_markdowns[] = embed_markdown($image_path, $thumb_path);   // so I can post from my phone
       }
     }
   }
@@ -98,7 +101,11 @@ foreach($_POST['image_name'] as $key => $image_name)
   }
 }  // end foreach($_POST['image_name'] as $key => $image_name)
 
+$encode_markdown = urlencode(implode("\n",$embed_markdowns));
+
 echo "<br><a href='https://badmin.robnugen.com'>https://badmin.robnugen.com</a>";
+
+echo "<br><a href='https://quill.plasticaddy.com/journal?text=$encode_markdown'>Post as markdown</a>";
 
 /**
  * @param string $image_path full system path of actual full-sized image
@@ -169,13 +176,13 @@ function process_paths(string $image_path, string $thumb_path)
   return array($alt_text, $image_url, $thumb_url);
 }
 
-function display_embeds(string $image_path, string $thumb_path)
+function embed_markdown(string $image_path, string $thumb_path)
 {
     list($alt_text, $image_url, $thumb_url) = process_paths($image_path, $thumb_path);
 
     $embed = sprintf("[![%s](%s)](%s)",$alt_text,$thumb_url,$image_url);
 
-    print_rob($embed,0);
+    return $embed;
 }
 
 function alttextify(string $image_path)
