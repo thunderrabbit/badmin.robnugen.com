@@ -40,4 +40,28 @@ Hello
   <div>
     <input type="submit" value="upload"/>
   </div>
+  <div>
+    <input type="file" name="pictures7" />
+    <input type="text" name="image_name[7]" />
+  </div>
+  <div>
+    <input type="file" name="pictures8" />
+    <input type="text" name="image_name[8]" />
+  </div>
+  <div>
+    <input type="file" name="pictures9" />
+    <input type="text" name="image_name[9]" />
+  </div>
+  <div>
+    <input type="file" name="pictures10" />
+    <input type="text" name="image_name[10]" />
+  </div>
+  <div>
+    <input type="file" name="pictures11" />
+    <input type="text" name="image_name[11]" />
+  </div>
+  <div>
+    <input type="file" name="pictures12" />
+    <input type="text" name="image_name[12]" />
+  </div>
 </form>
