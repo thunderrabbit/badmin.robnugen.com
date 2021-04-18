@@ -8,7 +8,7 @@ Hello
     <option value="journal">journal</option>
     <option value="blog">blog</option>
     <option value="tmp">tmp</option>
-  </select> / <input type="text" name="sub_dir" value="day-03"/>
+  </select> / <input type="text" name="sub_dir" value="day-04"/>
 
   <div>
     <input type="file" name="pictures1" />
