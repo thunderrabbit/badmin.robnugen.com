@@ -35,7 +35,7 @@ Hello
     <input type="text" name="image_name[6]" />
   </div>
   <div>
-    <label for="password">password</label> <input id="password" type="password" name="password" />
+    <label for="password">password</label> <input id="password" type="password" name="password" required />
   </div>
   <div>
     <input type="submit" value="upload"/>
