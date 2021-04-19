@@ -103,9 +103,9 @@ foreach($_POST['image_name'] as $key => $image_name)
 
 $encode_markdown = urlencode(implode("\n",$embed_markdowns));
 
-echo "<br><a href='https://badmin.robnugen.com'>https://badmin.robnugen.com</a>";
+echo "<h1><a href='https://badmin.robnugen.com'>https://badmin.robnugen.com</a></h1><br><br>";
 
-echo "<br><a href='https://quill.plasticaddy.com/journal?text=$encode_markdown'>Post as markdown</a>";
+echo "<h1><a href='https://quill.plasticaddy.com/journal?text=$encode_markdown'>Post as markdown</a></h1><br><br>";
 
 /**
  * @param string $image_path full system path of actual full-sized image
