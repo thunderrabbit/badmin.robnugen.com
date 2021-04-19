@@ -1,4 +1,12 @@
-Hello
+<?php
+date_default_timezone_set ("Asia/Tokyo");
+
+$date_of_month = date("d");
+
+echo $date_of_month;
+
+$day_number = $date_of_month - 15;
+?>
 
 <form method="POST" action="bullet.php" enctype="multipart/form-data" >
   <input type="hidden" name="MAX_FILE_SIZE" value="5000000"/>
@@ -8,7 +16,7 @@ Hello
     <option value="journal">journal</option>
     <option value="blog">blog</option>
     <option value="tmp">tmp</option>
-  </select> / <input type="text" name="sub_dir" value="day-04"/>
+  </select> / <input type="text" name="sub_dir" value="day-0<?php printf('%02d', $day_number); /* leading zero per my preference */ ?>"/>
 
   <div>
     <input type="file" name="pictures1" />
