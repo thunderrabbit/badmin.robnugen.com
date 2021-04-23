@@ -74,6 +74,8 @@ $thumb_dirname_created = $images->createStorage($thumb_dirname,0755);
 // but cannot as easily loop through an array of $_FILES['pictures']  (see commit c1f62fab9585ebeecec5)
 foreach($_POST['image_name'] as $key => $image_name)
 {
+  $description = $_POST['description'][$key];
+  htmlspecialchars($description);
   // prefer image name sent in field, and falls back to name of image file
   $save_image_name = create_image_name($image_name,$_FILES["pictures".$key]);
   if($images["pictures".$key])    // Accessing the key of the image actually tells $images what image to work with
@@ -88,6 +90,12 @@ foreach($_POST['image_name'] as $key => $image_name)
       $thumb_path = create_thumbnail($image_path,$thumb_dirname_created);
       if($image_path && $thumb_path)
       {
+        if(!empty($description))
+        {
+          $embed_markdowns[] = "";
+          $embed_markdowns[] = $description;
+          $embed_markdowns[] = "";
+        }
         $embed_markdowns[] = embed_markdown($image_path, $thumb_path);   // so I can post from my phone
       }
     }

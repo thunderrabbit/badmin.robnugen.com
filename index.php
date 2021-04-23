@@ -19,26 +19,32 @@ $day_number = $date_of_month - 15;
   </select> / <input type="text" name="sub_dir" value="day-0<?php printf('%01d', $day_number); /* leading zero per my preference */ ?>"/>
 
   <div>
+    <textarea name="description[1]"></textarea>
     <input type="file" name="pictures1" />
     <input type="text" name="image_name[1]" />
   </div>
   <div>
+    <textarea name="description[2]"></textarea>
     <input type="file" name="pictures2" />
     <input type="text" name="image_name[2]" />
   </div>
   <div>
+    <textarea name="description[3]"></textarea>
     <input type="file" name="pictures3" />
     <input type="text" name="image_name[3]" />
   </div>
   <div>
+    <textarea name="description[4]"></textarea>
     <input type="file" name="pictures4" />
     <input type="text" name="image_name[4]" />
   </div>
   <div>
+    <textarea name="description[5]"></textarea>
     <input type="file" name="pictures5" />
     <input type="text" name="image_name[5]" />
   </div>
   <div>
+    <textarea name="description[6]"></textarea>
     <input type="file" name="pictures6" />
     <input type="text" name="image_name[6]" />
   </div>
@@ -49,26 +55,32 @@ $day_number = $date_of_month - 15;
     <input type="submit" value="upload"/>
   </div>
   <div>
+    <textarea name="description[7]"></textarea>
     <input type="file" name="pictures7" />
     <input type="text" name="image_name[7]" />
   </div>
   <div>
+    <textarea name="description[8]"></textarea>
     <input type="file" name="pictures8" />
     <input type="text" name="image_name[8]" />
   </div>
   <div>
+    <textarea name="description[9]"></textarea>
     <input type="file" name="pictures9" />
     <input type="text" name="image_name[9]" />
   </div>
   <div>
+    <textarea name="description[10]"></textarea>
     <input type="file" name="pictures10" />
     <input type="text" name="image_name[10]" />
   </div>
   <div>
+    <textarea name="description[11]"></textarea>
     <input type="file" name="pictures11" />
     <input type="text" name="image_name[11]" />
   </div>
   <div>
+    <textarea name="description[12]"></textarea>
     <input type="file" name="pictures12" />
     <input type="text" name="image_name[12]" />
   </div>
