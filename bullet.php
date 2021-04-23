@@ -74,6 +74,8 @@ $thumb_dirname_created = $images->createStorage($thumb_dirname,0755);
 // but cannot as easily loop through an array of $_FILES['pictures']  (see commit c1f62fab9585ebeecec5)
 foreach($_POST['image_name'] as $key => $image_name)
 {
+  $key=intval($key);                  // weak-ass security
+  htmlspecialchars($image_name);      // weak-ass security
   $description = $_POST['description'][$key];
   htmlspecialchars($description);
   // prefer image name sent in field, and falls back to name of image file
