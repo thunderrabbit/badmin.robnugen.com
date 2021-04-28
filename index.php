@@ -16,7 +16,7 @@ $day_number = $date_of_month - 15;
     <option value="journal">journal</option>
     <option value="blog">blog</option>
     <option value="tmp">tmp</option>
-  </select> / <input type="text" name="sub_dir" value="day-0<?php printf('%01d', $day_number); /* leading zero per my preference */ ?>"/>
+  </select> / <input type="text" name="sub_dir" value="day-<?php printf('%02d', $day_number); /* leading zero per my preference */ ?>"/>
 
   <div>
     <textarea name="description[1]"></textarea>
