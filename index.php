@@ -9,7 +9,7 @@ $day_number = $date_of_month - 15;
 ?>
 
 <form method="POST" action="bullet.php" enctype="multipart/form-data" >
-  <input type="hidden" name="MAX_FILE_SIZE" value="5000000"/>
+  <input type="hidden" name="MAX_FILE_SIZE" value="10000000"/>
   <select name="save_to">
     <option value="quests">quests</option>
     <option value="plan">walk plan</option>
