@@ -10,6 +10,12 @@ $day_number = $date_of_month - 15;
 
 <form method="POST" action="bullet.php" enctype="multipart/form-data" >
   <input type="hidden" name="MAX_FILE_SIZE" value="10000000"/>
+  <div>
+    <label for="password">password</label> <input id="password" type="password" name="password" required />
+  </div>
+  <div>
+    <input type="submit" value="upload"/>
+  </div>
   <select name="save_to">
     <option value="quests">quests</option>
     <option value="plan">walk plan</option>
@@ -48,12 +54,7 @@ $day_number = $date_of_month - 15;
     <input type="file" name="pictures6" />
     <input type="text" name="image_name[6]" />
   </div>
-  <div>
-    <label for="password">password</label> <input id="password" type="password" name="password" required />
-  </div>
-  <div>
-    <input type="submit" value="upload"/>
-  </div>
+---------------------
   <div>
     <textarea name="description[7]"></textarea>
     <input type="file" name="pictures7" />
