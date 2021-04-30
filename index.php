@@ -5,7 +5,7 @@ $date_of_month = date("d");
 
 echo $date_of_month;
 
-$day_number = $date_of_month - 15;
+$day_number = $date_of_month + 15;
 ?>
 
 <form method="POST" action="bullet.php" enctype="multipart/form-data" >
