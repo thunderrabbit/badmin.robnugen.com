@@ -2,6 +2,7 @@
 date_default_timezone_set ("Asia/Tokyo");
 
 $date_of_month = date("d");
+$date_prefix = strtolower(date("Y_M_d_"));
 
 echo $date_of_month;
 
@@ -23,6 +24,7 @@ $day_number = $date_of_month + 15;
     <option value="blog">blog</option>
     <option value="tmp">tmp</option>
   </select> / <input type="text" name="sub_dir" value="day-<?php printf('%02d', $day_number); /* leading zero per my preference */ ?>"/>
+            / <input type="text" name="date_prefix" value="<?php echo $date_prefix; /* used if yyyy not found on image name */ ?>"/>
 
   <div>
     <textarea name="description[1]"></textarea>
