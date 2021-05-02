@@ -10,6 +10,18 @@ if (!password_verify($_POST['password'], $bulletproof_password_hash)) {
     exit;
 }
 
+$save_to = $_REQUEST["save_to"];
+filter_var($save_to, FILTER_SANITIZE_STRING);
+// print_rob($save_to,0);
+
+$sub_dir = $_REQUEST["sub_dir"];
+filter_var($sub_dir, FILTER_SANITIZE_STRING);
+// print_rob($sub_dir,0);
+
+$date_prefix = $_REQUEST["date_prefix"];
+filter_var($date_prefix, FILTER_SANITIZE_STRING);
+// print_rob($date_prefix,0);
+
 /* arrays which will store specific style of embed info for each image */
 $embed_markdowns = array();   // [![2021 apr 12 alt text](//b.robnugen.com/tmp/thumbs/2021_apr_12_alt_text.png)](//b.robnugen.com/tmp/2021_apr_12_alt_text.png)
 $embed_titles = array();
@@ -64,7 +76,7 @@ function prepend_date_prn($return_val)
 }
 $images = new \Bulletproof\Image($_FILES);
 
-$storage_directory = determine_storage_directory($_REQUEST["save_to"],$_REQUEST["sub_dir"]);
+$storage_directory = determine_storage_directory($save_to,$sub_dir);
 
 // Create a thumbnail in the `thumbs/` directory where the full sized file was created
 $thumb_dirname = $storage_directory . "/thumbs/";   // hardcoding thumbs/, because that is the convention on b.robnugen.com
@@ -156,10 +168,6 @@ function create_thumbnail(string $image_path, string $subdir_for_thumbs)
 
 function determine_storage_directory(string $save_to, string $sub_dir)
 {
-  filter_var($save_to, FILTER_SANITIZE_STRING);
-  // print_rob($save_to,0);
-  filter_var($sub_dir, FILTER_SANITIZE_STRING);
-  // print_rob($sub_dir,0);
   $location_determination = array(
     // no trailing slash
     "journal" => "/home/thundergoblin/b.robnugen.com/journal/2021",
