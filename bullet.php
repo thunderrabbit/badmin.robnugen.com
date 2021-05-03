@@ -62,17 +62,22 @@ function create_image_name($image_name, $image_info)
   return $return_val;
 }
 
-function prepend_date_prn($return_val)
+/**
+ *  Prepend a date to the filename unless it has the 4 digit year already there.
+ *
+ * @param string $name_prolly_no_date probably does not have a date.
+ */
+function prepend_date_prn(string $name_prolly_no_date, string $use_this_date = null)
 {
   $this_year = date("Y");
 
-  // /// PHP 8 version:  if(!empty($return_val) && !str_starts_with($return_val,$this_year))
-  if(!empty($return_val) && strpos($return_val,$this_year) === false)
+  // /// PHP 8 version:  if(!empty($name_prolly_no_date) && !str_starts_with($name_prolly_no_date,$this_year))
+  if(!empty($name_prolly_no_date) && strpos($name_prolly_no_date,$this_year) === false)
   {
-    $return_val = date("Y_M_d_") . $return_val;   // e.g. 2021_Apr_05_return_val
+    $name_prolly_no_date = date("Y_M_d_") . $name_prolly_no_date;   // e.g. 2021_Apr_05_return_val
   }
-  $return_val = mb_strtolower($return_val);       // get rid of capital month from "M" in date
-  return $return_val;
+  $name_prolly_no_date = mb_strtolower($name_prolly_no_date);       // get rid of capital month from "M" in date
+  return $name_prolly_no_date;
 }
 $images = new \Bulletproof\Image($_FILES);
 
