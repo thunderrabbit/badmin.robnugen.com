@@ -69,15 +69,28 @@ function create_image_name($image_name, $image_info)
  */
 function prepend_date_prn(string $name_prolly_no_date, string $use_this_date = null)
 {
+  /*
+      best version I can think of now is actually:
+      Y4D = get 4 digits from beginning of $use_this_date if exists
+      $this year = this year or Y4D
+      check if filename already has $this_year prepended
+      if so, then leave it,
+      if not, then prepend $use_this_date
+      */
   $this_year = date("Y");
 
   // /// PHP 8 version:  if(!empty($name_prolly_no_date) && !str_starts_with($name_prolly_no_date,$this_year))
   if(!empty($name_prolly_no_date) && strpos($name_prolly_no_date,$this_year) === false)
   {
-    $name_prolly_no_date = date("Y_M_d_") . $name_prolly_no_date;   // e.g. 2021_Apr_05_return_val
+    if($use_this_date) {
+      $name_now_has_date = $use_this_date . $name_prolly_no_date;   // e.g. 2021_Apr_05_return_val
+    }
+    else {
+      $name_now_has_date = date("Y_M_d_") . $name_prolly_no_date;   // e.g. 2021_Apr_05_return_val
+    }
   }
-  $name_prolly_no_date = mb_strtolower($name_prolly_no_date);       // get rid of capital month from "M" in date
-  return $name_prolly_no_date;
+  $name_now_has_date = mb_strtolower($name_now_has_date);       // get rid of capital month from "M" in date
+  return $name_now_has_date;
 }
 $images = new \Bulletproof\Image($_FILES);
 
