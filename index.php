@@ -7,6 +7,10 @@ $date_prefix = strtolower(date("Y_M_d_"));
 echo $date_of_month;
 
 $day_number = $date_of_month + 15;
+
+
+// subdir default for quests day-<?php printf('%02d', $day_number); /* leading zero per my preference */
+
 ?>
 
 <form method="POST" action="bullet.php" enctype="multipart/form-data" >
@@ -26,7 +30,7 @@ $day_number = $date_of_month + 15;
     <option value="quests">quests</option>
     <option value="plan">walk plan</option>
     <option value="tmp">tmp</option>
-  </select> / <input type="text" name="sub_dir" value="day-<?php printf('%02d', $day_number); /* leading zero per my preference */ ?>"/>
+  </select> / <input type="text" name="sub_dir" value=""/>
             / <input type="text" name="date_prefix" value="<?php echo $date_prefix; /* used if yyyy not found on image name */ ?>"/>
 
   <div>
