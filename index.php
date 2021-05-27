@@ -18,11 +18,11 @@ $day_number = $date_of_month + 15;
     <input type="submit" value="upload"/>
   </div>
   <select name="save_to">
-    <option value="events">events</option>
-    <option value="journal">journal</option>
-    <option value="blog">blog</option>
-    <option value="mt3cons">MT3 construction</option>
-    <option value="mt3parts">MT3 parts</option>
+    <option value="events">events/YYYY</option>
+    <option value="journal">journal/YYYY</option>
+    <option value="blog">blog/YYYY</option>
+    <option value="mt3cons">MT3 construction/YYYY</option>
+    <option value="mt3parts">MT3 parts/YYYY</option>
     <option value="quests">quests</option>
     <option value="plan">walk plan</option>
     <option value="tmp">tmp</option>
