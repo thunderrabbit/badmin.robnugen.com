@@ -9,7 +9,8 @@ echo $date_of_month;
 $day_number = $date_of_month + 15;
 
 
-// subdir default for quests day-<?php printf('%02d', $day_number); /* leading zero per my preference */
+//  Plan to set the subdir based on select, a la https://stackoverflow.com/a/12661801/194309
+// This was the subdir default for quests day-<?php printf('%02d', $day_number); /* leading zero per my preference */
 
 ?>
 
