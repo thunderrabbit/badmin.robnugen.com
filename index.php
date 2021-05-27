@@ -18,10 +18,13 @@ $day_number = $date_of_month + 15;
     <input type="submit" value="upload"/>
   </div>
   <select name="save_to">
-    <option value="quests">quests</option>
-    <option value="plan">walk plan</option>
+    <option value="events">events</option>
     <option value="journal">journal</option>
     <option value="blog">blog</option>
+    <option value="mt3cons">MT3 construction</option>
+    <option value="mt3parts">MT3 parts</option>
+    <option value="quests">quests</option>
+    <option value="plan">walk plan</option>
     <option value="tmp">tmp</option>
   </select> / <input type="text" name="sub_dir" value="day-<?php printf('%02d', $day_number); /* leading zero per my preference */ ?>"/>
             / <input type="text" name="date_prefix" value="<?php echo $date_prefix; /* used if yyyy not found on image name */ ?>"/>
