@@ -41,23 +41,24 @@ function print_rob($object, $exit = true)
     }
 }
 
+// print_rob($_POST,0);
+
 /** Use $image_name for image name or fallback to file name (without extension)
  *
  * @param string $image_name preferred name (sent by user)
  * @param array $image_info array of file info as sent by <input type="file" />
  *
  */
-function create_image_name($image_name, $image_info)
+function create_image_name($date_prefix, $image_name, $image_info)
 {
   // prefer name typed by user (allows naming files here without renaming on device)
-  $return_val = $image_name ? $image_name : pathinfo($image_info['name'], PATHINFO_FILENAME);
+  $return_val = !empty(trim($image_name)) ? $image_name : pathinfo($image_info['name'], PATHINFO_FILENAME);
 
   // convert spaces to underscores
   $return_val = preg_replace('/\s+/', '_', $return_val);   //  https://stackoverflow.com/a/20871407/194309
 
   // TODO maybe convert to lowercase??
-
-  $return_val = prepend_date_prn($return_val);
+  $return_val = prepend_date_prn($date_prefix, $return_val);
 
   return $return_val;
 }
@@ -67,23 +68,23 @@ function create_image_name($image_name, $image_info)
  *
  * @param string $name_prolly_no_date probably does not have a date.
  */
-function prepend_date_prn(string $name_prolly_no_date, string $use_this_date = null)
+function prepend_date_prn(string $date_prefix, string $name_prolly_no_date)
 {
   /*
       best version I can think of now is actually:
-      Y4D = get 4 digits from beginning of $use_this_date if exists
+      Y4D = get 4 digits from beginning of $date_prefix if exists
       $this year = this year or Y4D
       check if filename already has $this_year prepended
       if so, then leave it,
-      if not, then prepend $use_this_date
+      if not, then prepend $date_prefix
       */
   $this_year = date("Y");
 
   // /// PHP 8 version:  if(!empty($name_prolly_no_date) && !str_starts_with($name_prolly_no_date,$this_year))
   if(!empty($name_prolly_no_date) && strpos($name_prolly_no_date,$this_year) === false)
   {
-    if($use_this_date) {
-      $name_now_has_date = $use_this_date . $name_prolly_no_date;   // e.g. 2021_Apr_05_return_val
+    if($date_prefix) {
+      $name_now_has_date = $date_prefix . $name_prolly_no_date;   // e.g. 2021_Apr_05_return_val
     }
     else {
       $name_now_has_date = date("Y_M_d_") . $name_prolly_no_date;   // e.g. 2021_Apr_05_return_val
@@ -109,7 +110,7 @@ foreach($_POST['image_name'] as $key => $image_name)
   $description = $_POST['description'][$key];
   htmlspecialchars($description);
   // prefer image name sent in field, and falls back to name of image file
-  $save_image_name = create_image_name($image_name,$_FILES["pictures".$key]);
+  $save_image_name = create_image_name($date_prefix,$image_name,$_FILES["pictures".$key]);
   if($images["pictures".$key])    // Accessing the key of the image actually tells $images what image to work with
   {
     $images->setName($save_image_name)             // name of full-sized image
@@ -137,7 +138,7 @@ foreach($_POST['image_name'] as $key => $image_name)
     // (There was an image name but no file)
     echo "<br>apparently nothing in images[\"pictures\".$key], but we have filename $save_image_name";
     echo "<br>so what about files?<br>";
-    print_rob($_FILES["pictures".$key]);
+    print_rob($_FILES);
   }
 }  // end foreach($_POST['image_name'] as $key => $image_name)
 
