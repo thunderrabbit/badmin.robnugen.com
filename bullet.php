@@ -25,8 +25,9 @@ filter_var($date_prefix, FILTER_SANITIZE_STRING);
 /* arrays which will store specific style of embed info for each image */
 $embed_markdowns = array();   // [![2021 apr 12 alt text](//b.robnugen.com/tmp/thumbs/2021_apr_12_alt_text.png)](//b.robnugen.com/tmp/2021_apr_12_alt_text.png)
 $embed_titles = array();
+$html_img_tag_output = array();
 
-function print_rob($object, $exit = true)
+function print_rob(object $object, bool $exit = true)
 {
     echo("<pre>");
     if(is_object($object) && method_exists($object, "toArray"))
@@ -125,12 +126,14 @@ foreach($_POST['image_name'] as $key => $image_name)
       {
         if(!empty($description))
         {
-          $embed_markdowns[] = "";
+          $embed_markdowns[] = "";    // gives some <br> around description
           $embed_markdowns[] = $description;
-          $embed_markdowns[] = "";
+          $embed_markdowns[] = "";    // gives some <br> around description
         }
-        $embed_markdowns[] = embed_markdown($image_path, $thumb_path);   // so I can post from my phone
-      }
+        $embed_markdowns[] = embed_markdown_func($image_path, $thumb_path);   // so I can post from my phone
+        $html_img_tag_output[] = create_html_img_tag($image_path, $thumb_path);   // so I can get a preview
+      }$html_img_tag_output = array();
+
     }
   }
   else if(!empty($save_image_name))
@@ -147,6 +150,9 @@ $encode_markdown = urlencode(implode("\n",$embed_markdowns));
 echo "<h1><a href='https://badmin.robnugen.com'>https://badmin.robnugen.com</a></h1><br><br>";
 
 echo "<h1><a href='https://quill.plasticaddy.com/journal?text=$encode_markdown'>Post as markdown</a></h1><br><br>";
+
+// Y U NO print image html???
+print_r(implode("\n",$html_img_tag_output));
 
 /**
  * @param string $image_path full system path of actual full-sized image
@@ -217,11 +223,21 @@ function process_paths(string $image_path, string $thumb_path)
   return array($alt_text, $image_url, $thumb_url);
 }
 
-function embed_markdown(string $image_path, string $thumb_path)
+// calling this _func just to distinguish from the variable $embed_markdowns
+function embed_markdown_func(string $image_path, string $thumb_path)
 {
     list($alt_text, $image_url, $thumb_url) = process_paths($image_path, $thumb_path);
 
     $embed = sprintf("[![%s](%s)](%s)",$alt_text,$thumb_url,$image_url);
+
+    return $embed;
+}
+
+function create_html_img_tag(string $image_path, string $thumb_path)
+{
+    list($alt_text, $image_url, $thumb_url) = process_paths($image_path, $thumb_path);
+
+    $embed = sprintf("<br><img src='%s' alt='%s' />",$thumb_url,$alt_text);
 
     return $embed;
 }
