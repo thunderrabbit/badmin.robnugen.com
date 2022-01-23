@@ -5,3 +5,7 @@ I was thinking  about writing an easy CGI script to allow renaming of imagesif I
 Like array of thumbnails and can change the image names if I like.  Name changes would be reflected on disk.
 
 Instead of starting from scratch, I will try the code at https://github.com/samayo/bulletproof
+
+Hey past Rob
+
+Looks like it worked!  Nice job!
