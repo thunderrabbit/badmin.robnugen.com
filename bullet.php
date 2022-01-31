@@ -116,6 +116,9 @@ function prepend_date_prn(string $date_prefix, string $name_prolly_no_date)
     else {
       $name_now_has_date = date("Y_M_d_") . $name_prolly_no_date;   // e.g. 2021_Apr_05_return_val
     }
+  } else {
+    // Name DID have a date, so use it
+    $name_now_has_date = $name_prolly_no_date;
   }
   $name_now_has_date = mb_strtolower($name_now_has_date);       // get rid of capital month from "M" in date
   return $name_now_has_date;
