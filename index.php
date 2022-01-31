@@ -18,6 +18,7 @@ $day_number = $date_of_month + 15;
   <input type="hidden" name="MAX_FILE_SIZE" value="10000000"/>
   <div>
     <label for="password">password</label> <input id="password" type="password" name="password" required />
+    <label for="debug_level">debug_level</label> <input id="debug_level" type="text" name="debug_level" value="" placeholder="0 - 5"/>
   </div>
   <div>
     <input type="submit" value="upload"/>
@@ -31,7 +32,7 @@ $day_number = $date_of_month + 15;
     <option value="mt3parts">MT3 parts/YYYY</option>
     <option value="quests">quests</option>
     <option value="plan">walk plan</option>
-  </select> / <input type="text" name="sub_dir" placeholder="sub/dir/ect/ory" />
+  </select> / <input type="text" name="sub_dir" placeholder="day-12" value=""/>
             / <input type="text" name="date_prefix" placeholder="if YYYY not found in file name" value="<?php echo $date_prefix; /* used if yyyy not found on image name */ ?>"/>
 
   <div>

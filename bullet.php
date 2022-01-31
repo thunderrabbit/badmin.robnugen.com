@@ -10,24 +10,31 @@ if (!password_verify($_POST['password'], $bulletproof_password_hash)) {
     exit;
 }
 
+$debug_level = $_REQUEST["debug_level"];if (filter_var($debug_level, FILTER_VALIDATE_INT,
+      array("options" => array("min_range"=>0, "max_range"=>5))) === false)
+{
+    $debug_level = 0;
+}
+if($debug_level > 0) {  print_rob("debug_level: " . $debug_level,false); }
+
 $save_to = $_REQUEST["save_to"];
 filter_var($save_to, FILTER_SANITIZE_STRING);
-// print_rob($save_to,0);
+if($debug_level > 0) {  print_rob("save_to: " . $save_to,false); }
 
 $sub_dir = $_REQUEST["sub_dir"];
 filter_var($sub_dir, FILTER_SANITIZE_STRING);
-// print_rob($sub_dir,0);
+if($debug_level > 0) {  print_rob("sub_dir: " . $sub_dir,false); }
 
 $date_prefix = $_REQUEST["date_prefix"];
 filter_var($date_prefix, FILTER_SANITIZE_STRING);
-// print_rob($date_prefix,0);
+if($debug_level > 0) {  print_rob("date_prefix: " . $date_prefix,false); }
 
 /* arrays which will store specific style of embed info for each image */
 $embed_markdowns = array();   // [![2021 apr 12 alt text](//b.robnugen.com/tmp/thumbs/2021_apr_12_alt_text.png)](//b.robnugen.com/tmp/2021_apr_12_alt_text.png)
 $embed_titles = array();
 $html_img_tag_output = array();
 
-function print_rob(object $object, bool $exit = true)
+function print_rob($object, bool $exit = true)
 {
     echo("<pre>");
     if(is_object($object) && method_exists($object, "toArray"))
@@ -42,25 +49,44 @@ function print_rob(object $object, bool $exit = true)
     }
 }
 
-// print_rob($_POST,0);
+if($debug_level > 4) {
+  print_rob($_POST,false);
+  print_rob($_FILES,false);
+}
 
 /** Use $image_name for image name or fallback to file name (without extension)
  *
+ * @param string $date_prefix is prepended if YYYY dne in name
  * @param string $image_name preferred name (sent by user)
  * @param array $image_info array of file info as sent by <input type="file" />
  *
  */
 function create_image_name($date_prefix, $image_name, $image_info)
 {
+  // if($debug_level >= 4) {  DNE in this context
+    // print_rob("in create_imagename",false);
+    // print_rob("date_prefix: " . $date_prefix,false);
+    // print_rob("image_name: " . $image_name,false);
+    // print_rob("image_info: ",false);
+    // print_rob($image_info,false);
+  // }
+
   // prefer name typed by user (allows naming files here without renaming on device)
   $return_val = !empty(trim($image_name)) ? $image_name : pathinfo($image_info['name'], PATHINFO_FILENAME);
+  // print_rob("line " . __LINE__ . " return_val: " . $return_val,false);
 
   // convert spaces to underscores
+
   $return_val = preg_replace('/\s+/', '_', $return_val);   //  https://stackoverflow.com/a/20871407/194309
+  // print_rob("line " . __LINE__ . " return_val: " . $return_val,false);
 
   // TODO maybe convert to lowercase??
   $return_val = prepend_date_prn($date_prefix, $return_val);
+  // print_rob("line " . __LINE__ . " return_val: " . $return_val,false);
 
+  // if($debug_level > 0) {  print_rob("create image name: " . $return_val,false); }
+
+  // print_rob("line " . __LINE__ . " return_val: " . $return_val,false);
   return $return_val;
 }
 
@@ -104,14 +130,17 @@ $thumb_dirname_created = $images->createStorage($thumb_dirname,0755);
 
 // We can easily loop through array $_POST['image_name']
 // but cannot as easily loop through an array of $_FILES['pictures']  (see commit c1f62fab9585ebeecec5)
+if($debug_level >= 4) {print_rob("before foreach POST[image_name]",false);}
 foreach($_POST['image_name'] as $key => $image_name)
 {
   $key=intval($key);                  // weak-ass security
   htmlspecialchars($image_name);      // weak-ass security
+  if($debug_level >= 5) {print_rob("received image_name: " . $image_name,false);}
   $description = $_POST['description'][$key];
   htmlspecialchars($description);
   // prefer image name sent in field, and falls back to name of image file
   $save_image_name = create_image_name($date_prefix,$image_name,$_FILES["pictures".$key]);
+  if($debug_level >= 4) {print_rob("save_image_name: " . $save_image_name);}
   if($images["pictures".$key])    // Accessing the key of the image actually tells $images what image to work with
   {
     $images->setName($save_image_name)             // name of full-sized image
