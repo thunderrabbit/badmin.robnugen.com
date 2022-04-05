@@ -1,4 +1,5 @@
 <?php
+/* Add location at determine_storage_directory */
 
 require_once  "/home/thundergoblin/bulletproof_config.php";
 require_once  "/home/thundergoblin/bulletproof/src/bulletproof.php";
@@ -143,7 +144,7 @@ foreach($_POST['image_name'] as $key => $image_name)
   htmlspecialchars($description);
   // prefer image name sent in field, and falls back to name of image file
   $save_image_name = create_image_name($date_prefix,$image_name,$_FILES["pictures".$key]);
-  if($debug_level >= 4) {print_rob("save_image_name: " . $save_image_name);}
+  if($debug_level >= 4) {print_rob("save_image_name: " . $save_image_name,false);}
   if($images["pictures".$key])    // Accessing the key of the image actually tells $images what image to work with
   {
     $images->setName($save_image_name)             // name of full-sized image
@@ -229,6 +230,7 @@ function determine_storage_directory(string $save_to, string $sub_dir)
   $location_determination = array(
     // no trailing slash
     "events" => "/home/thundergoblin/b.robnugen.com/events/" . $this_year,
+    "walk_and_talk" => "/home/thundergoblin/b.robnugen.com/blog/" . $this_year . "/walk_and_talk",
     "journal" => "/home/thundergoblin/b.robnugen.com/journal/" . $this_year,
     "blog" => "/home/thundergoblin/b.robnugen.com/blog/" . $this_year,
     "mt3cons" => "/home/thundergoblin/b.robnugen.com/art/marble_track_3/construction/" . $this_year,

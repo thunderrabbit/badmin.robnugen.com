@@ -26,6 +26,7 @@ $day_number = $date_of_month + 15;
   <select name="save_to">
     <option value="journal">journal/YYYY</option>
     <option value="events">events/YYYY</option>
+    <option value="walk_and_talk">blog/YYYY/walk_and_talk</option>
     <option value="blog">blog/YYYY</option>
     <option value="tmp">tmp</option>
     <option value="mt3cons">MT3 construction/YYYY</option>
