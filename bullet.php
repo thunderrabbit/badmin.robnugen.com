@@ -147,6 +147,7 @@ foreach($_POST['image_name'] as $key => $image_name)
   // prefer image name sent in field, and falls back to name of image file
   $save_image_name = create_image_name($date_prefix,$image_name,$_FILES["pictures".$key]);
   if($debug_level >= 4) {print_rob("save_image_name: " . $save_image_name,false);}
+  if($debug_level >= 5) {print_rob("storage_directory: " . $storage_directory,false);}
   if($images["pictures".$key])    // Accessing the key of the image actually tells $images what image to work with
   {
     $images->setName($save_image_name)             // name of full-sized image
@@ -156,6 +157,7 @@ foreach($_POST['image_name'] as $key => $image_name)
     if($upload && $thumb_dirname_created)
     {
       $image_path = $upload->getPath();              // full path of full-sized image so we can create embed code
+      if($debug_level >= 4) {print_rob("image_path: " . $image_path,false);}
       $thumb_path = create_thumbnail($image_path,$thumb_dirname_created);
       if($image_path && $thumb_path)
       {
@@ -168,7 +170,14 @@ foreach($_POST['image_name'] as $key => $image_name)
         $embed_markdowns[] = embed_markdown_func($image_path, $thumb_path);   // so I can post from my phone
         $html_img_tag_output[] = create_html_img_tag($image_path, $thumb_path);   // so I can get a preview
       }$html_img_tag_output = array();
-
+    }
+    else
+    {
+      print_rob("apparently images->upload() returned falsey value",false);
+      print_rob("upload",false);
+      print_rob($upload,false);
+      print_rob("thumb_dirname_created",false);
+      print_rob($thumb_dirname_created,false);
     }
   }
   else if(!empty($save_image_name))
