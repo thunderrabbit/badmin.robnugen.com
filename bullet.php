@@ -64,32 +64,17 @@ if($debug_level > 4) {
  */
 function create_image_name($date_prefix, $image_name, $image_info)
 {
-  // if($debug_level >= 4) {  DNE in this context
-    // print_rob("in create_imagename",false);
-    // print_rob("date_prefix: " . $date_prefix,false);
-    // print_rob("image_name: " . $image_name,false);
-    // print_rob("image_info: ",false);
-    // print_rob($image_info,false);
-  // }
-
   // prefer name typed by user (allows naming files here without renaming on device)
   $return_val = !empty(trim($image_name)) ? $image_name : pathinfo($image_info['name'], PATHINFO_FILENAME);
-  // print_rob("line " . __LINE__ . " return_val: " . $return_val,false);
 
   // convert spaces to underscores
-
   $return_val = preg_replace('/\s+/', '_', $return_val);   //  https://stackoverflow.com/a/20871407/194309
-  // print_rob("line " . __LINE__ . " return_val: " . $return_val,false);
 
   $return_val = preg_replace('/_+\\./', '.', $return_val);  // /path/long_file_name__.jpg --> /path/long_file_name.jpg
 
   // TODO maybe convert to lowercase??
   $return_val = prepend_date_prn($date_prefix, $return_val);
-  // print_rob("line " . __LINE__ . " return_val: " . $return_val,false);
 
-  // if($debug_level > 0) {  print_rob("create image name: " . $return_val,false); }
-
-  // print_rob("line " . __LINE__ . " return_val: " . $return_val,false);
   return $return_val;
 }
 
