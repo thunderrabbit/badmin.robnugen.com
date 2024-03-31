@@ -143,7 +143,7 @@ foreach($_POST['image_name'] as $key => $image_name)
       $image_path = $upload->getPath();              // full path of full-sized image so we can create embed code
       if($debug_level >= 4) {print_rob("image_path: " . $image_path,false);}
       $thumb_path = create_thumbnail($image_path,$thumb_dirname_created);
-      if($image_path && $thumb_path)
+      if(!empty($image_path) && !empty($thumb_path))
       {
         if(!empty($description))
         {
@@ -198,7 +198,7 @@ print_r(implode("\n",$html_img_tag_output));
  *
  *
  */
-function create_thumbnail(string $image_path, string $subdir_for_thumbs)
+function create_thumbnail(string $image_path, string $subdir_for_thumbs): string
 {
   $basename = basename($image_path);   // cool_filename.png
 
@@ -207,7 +207,7 @@ function create_thumbnail(string $image_path, string $subdir_for_thumbs)
   return resize_image($thumb_path, 200, 200);
 }
 
-function resize_image(string $image_path, int $maxWidth, int $maxHeight)
+function resize_image(string $image_path, int $maxWidth, int $maxHeight): string
 {
   $size_deets = getimagesize($thumb_path);  // get deets of file required by \resize()
   $imgWidth = $size_deets[0];
@@ -221,7 +221,7 @@ function resize_image(string $image_path, int $maxWidth, int $maxHeight)
   }
   else
   {
-    return false;
+    return "";
   }
 }
 
