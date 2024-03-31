@@ -153,7 +153,8 @@ foreach($_POST['image_name'] as $key => $image_name)
         }
         $embed_markdowns[] = embed_markdown_func($image_path, $thumb_path);   // so I can post from my phone
         $html_img_tag_output[] = create_html_img_tag($image_path, $thumb_path);   // so I can get a preview
-      }$html_img_tag_output = array();
+      }
+      $html_img_tag_output = array();
     }
     else
     {
