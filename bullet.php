@@ -246,7 +246,7 @@ function determine_storage_directory(string $save_to, string $sub_dir)
 }
 
 // calling this _func just to distinguish from the variable $embed_markdowns
-function embed_markdown_func(string $image_path, string $thumb_path)
+function embed_markdown_func(string $image_path, string $thumb_path): string
 {
     $alt_text = alttextify($image_path);
     $image_url = urlify($image_path);
@@ -257,7 +257,7 @@ function embed_markdown_func(string $image_path, string $thumb_path)
     return $embed;
 }
 
-function create_html_img_tag(string $image_path, string $thumb_path)
+function create_html_img_tag(string $image_path, string $thumb_path): string
 {
     $alt_text = alttextify($image_path);
     $thumb_url = urlify($thumb_path);
@@ -267,12 +267,12 @@ function create_html_img_tag(string $image_path, string $thumb_path)
     return $embed;
 }
 
-function alttextify(string $image_path)
+function alttextify(string $image_path): string
 {
   return str_replace('_',' ',pathinfo($image_path,PATHINFO_FILENAME));
 }
 
-function urlify(string $image_path)
+function urlify(string $image_path): string
 {
   return str_replace('home/thundergoblin','',$image_path);
 }
