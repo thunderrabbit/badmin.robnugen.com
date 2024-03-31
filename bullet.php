@@ -209,15 +209,15 @@ function create_thumbnail(string $image_path, string $subdir_for_thumbs): string
 
 function resize_image(string $image_path, int $maxWidth, int $maxHeight): string
 {
-  $size_deets = getimagesize($thumb_path);  // get deets of file required by \resize()
+  $size_deets = getimagesize($image_path);  // get deets of file required by \resize()
   $imgWidth = $size_deets[0];
   $imgHeight = $size_deets[1];
   $mimeType = basename($size_deets['mime']);  // basename("image/png") returns "png"
 
-  $success = \Bulletproof\Utils\resize($thumb_path, $mimeType, $imgWidth, $imgHeight, $maxWidth, $maxHeight, true);
+  $success = \Bulletproof\Utils\resize($image_path, $mimeType, $imgWidth, $imgHeight, $maxWidth, $maxHeight, true);
   if($success)
   {
-    return $thumb_path;
+    return $image_path;
   }
   else
   {
