@@ -65,7 +65,7 @@ if($debug_level > 4) {
 function create_image_name($date_prefix, $image_name, $image_info)
 {
   // prefer name typed by user (allows naming files here without renaming on device)
-  $return_val = !empty(trim($image_name)) ? $image_name : pathinfo($image_info['name'], PATHINFO_FILENAME);
+  $return_val = trim($image_name) ?? pathinfo($image_info['name'], PATHINFO_FILENAME);
 
   // convert spaces to underscores
   $return_val = preg_replace('/\s+/', '_', $return_val);   //  https://stackoverflow.com/a/20871407/194309
@@ -95,8 +95,7 @@ function prepend_date_prn(string $date_prefix, string $name_prolly_no_date)
       */
   $this_year = date("Y");
 
-  // /// PHP 8 version:  if(!empty($name_prolly_no_date) && !str_starts_with($name_prolly_no_date,$this_year))
-  if(!empty($name_prolly_no_date) && strpos($name_prolly_no_date,$this_year) === false)
+  if(!empty($name_prolly_no_date) && !str_starts_with($name_prolly_no_date,$this_year))
   {
     if($date_prefix) {
       $name_now_has_date = $date_prefix . $name_prolly_no_date;   // e.g. 2021_Apr_05_return_val
