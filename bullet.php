@@ -204,12 +204,17 @@ function create_thumbnail(string $image_path, string $subdir_for_thumbs)
 
   $thumb_path = $subdir_for_thumbs . $basename;   // /path/thumbs/cool_filename.png
   copy($image_path,$thumb_path);       // OS make a copy of file
-  $thumb_info = getimagesize($thumb_path);  // get deets of file required by \resize()
-  $imgWidth = $thumb_info[0];
-  $imgHeight = $thumb_info[1];
-  $mimeType = basename($thumb_info['mime']);  // basename("image/png") returns "png"
+  return resize_image($thumb_path, 200, 200);
+}
 
-  $success = \Bulletproof\Utils\resize($thumb_path, $mimeType, $imgWidth, $imgHeight, 200, 200, true);
+function resize_image(string $image_path, int $maxWidth, int $maxHeight)
+{
+  $size_deets = getimagesize($thumb_path);  // get deets of file required by \resize()
+  $imgWidth = $size_deets[0];
+  $imgHeight = $size_deets[1];
+  $mimeType = basename($size_deets['mime']);  // basename("image/png") returns "png"
+
+  $success = \Bulletproof\Utils\resize($thumb_path, $mimeType, $imgWidth, $imgHeight, $maxWidth, $maxHeight, true);
   if($success)
   {
     return $thumb_path;
@@ -219,6 +224,7 @@ function create_thumbnail(string $image_path, string $subdir_for_thumbs)
     return false;
   }
 }
+
 
 function determine_storage_directory(string $save_to, string $sub_dir)
 {
