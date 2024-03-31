@@ -182,7 +182,7 @@ $encode_markdown = urlencode(implode("\n",$embed_markdowns));
 
 echo "<h1><a href='https://badmin.robnugen.com'>https://badmin.robnugen.com</a></h1><br><br>";
 
-echo "<h1><a href='https://quill.plasticaddy.com/journal?text=$encode_markdown'>Post as markdown</a></h1><br><br>";
+echo "<h1><a href='https://quick.robnugen.com/poster?text=$encode_markdown'>Post as markdown</a></h1><br><br>";
 
 // Y U NO print image html???
 print_r(implode("\n",$html_img_tag_output));
