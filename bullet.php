@@ -81,6 +81,8 @@ function create_image_name($date_prefix, $image_name, $image_info)
   $return_val = preg_replace('/\s+/', '_', $return_val);   //  https://stackoverflow.com/a/20871407/194309
   // print_rob("line " . __LINE__ . " return_val: " . $return_val,false);
 
+  $return_val = preg_replace('/_+\\./', '.', $return_val);  // /path/long_file_name__.jpg --> /path/long_file_name.jpg
+
   // TODO maybe convert to lowercase??
   $return_val = prepend_date_prn($date_prefix, $return_val);
   // print_rob("line " . __LINE__ . " return_val: " . $return_val,false);
