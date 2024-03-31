@@ -224,7 +224,7 @@ function create_1000px_nail(string $image_path, string $storage_directory): stri
 
   if($debug_level >= 5) {print_rob("px_1000_name: " . $px_1000_name,false);}
 
-  $thumb_path = $storage_directory . $px_1000_name;   // /path/thumbs/cool_filename_1000.png
+  $thumb_path = $storage_directory . "/" . $px_1000_name;   // /path/thumbs/cool_filename_1000.png
   if($debug_level >= 4) {print_rob("px_1000_full_path: " . $thumb_path,false);}
 
   copy($image_path,$thumb_path);       // OS make a copy of file
