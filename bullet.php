@@ -140,9 +140,11 @@ foreach($_POST['image_name'] as $key => $image_name)
     $upload = $images->upload();                   // upload full-sized image
     if($upload && $thumb_dirname_created)
     {
-      $image_path = $upload->getPath();              // full path of full-sized image so we can create embed code
-      if($debug_level >= 4) {print_rob("image_path: " . $image_path,false);}
-      $thumb_path = create_thumbnail($image_path,$thumb_dirname_created);
+      $full_sized_image_path = $upload->getPath();              // full path of full-sized image so we can create embed code
+      if($debug_level >= 4) {print_rob("image_path: " . $full_sized_image_path,false);}
+      $image_path = create_1000px_nail($full_sized_image_path,$storage_directory);  // new for 2024! 1000-px images
+      $thumb_path = create_thumbnail($full_sized_image_path,$thumb_dirname_created);
+
       if(!empty($image_path) && !empty($thumb_path))
       {
         if(!empty($description))
@@ -203,8 +205,31 @@ function create_thumbnail(string $image_path, string $subdir_for_thumbs): string
   $basename = basename($image_path);   // cool_filename.png
 
   $thumb_path = $subdir_for_thumbs . $basename;   // /path/thumbs/cool_filename.png
+
+  print_rob($image_path . " --> " . $thumb_path,false);
+
   copy($image_path,$thumb_path);       // OS make a copy of file
   return resize_image($thumb_path, 200, 200);
+}
+
+function create_1000px_nail(string $image_path, string $storage_directory): string
+{
+  $basename = basename($image_path);   // cool_filename.png
+
+  // Get the extension of the file
+  $ext = pathinfo($basename, PATHINFO_EXTENSION);
+
+  // Create a new variable $px_1000_name by inserting _1000 before the extension
+  $px_1000_name = pathinfo($basename, PATHINFO_FILENAME) . "_1000." . $ext;
+
+  if($debug_level >= 5) {print_rob("px_1000_name: " . $px_1000_name,false);}
+
+  $thumb_path = $storage_directory . $px_1000_name;   // /path/thumbs/cool_filename_1000.png
+  if($debug_level >= 4) {print_rob("px_1000_full_path: " . $thumb_path,false);}
+
+  copy($image_path,$thumb_path);       // OS make a copy of file
+  print_rob("success copied px 1000 path",false);
+  return resize_image($thumb_path, 1000, 1000);
 }
 
 function resize_image(string $image_path, int $maxWidth, int $maxHeight): string
