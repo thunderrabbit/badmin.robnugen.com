@@ -64,32 +64,17 @@ if($debug_level > 4) {
  */
 function create_image_name($date_prefix, $image_name, $image_info)
 {
-  // if($debug_level >= 4) {  DNE in this context
-    // print_rob("in create_imagename",false);
-    // print_rob("date_prefix: " . $date_prefix,false);
-    // print_rob("image_name: " . $image_name,false);
-    // print_rob("image_info: ",false);
-    // print_rob($image_info,false);
-  // }
-
   // prefer name typed by user (allows naming files here without renaming on device)
-  $return_val = !empty(trim($image_name)) ? $image_name : pathinfo($image_info['name'], PATHINFO_FILENAME);
-  // print_rob("line " . __LINE__ . " return_val: " . $return_val,false);
+  $return_val = trim($image_name) ?? pathinfo($image_info['name'], PATHINFO_FILENAME);
 
   // convert spaces to underscores
-
   $return_val = preg_replace('/\s+/', '_', $return_val);   //  https://stackoverflow.com/a/20871407/194309
-  // print_rob("line " . __LINE__ . " return_val: " . $return_val,false);
 
   $return_val = preg_replace('/_+\\./', '.', $return_val);  // /path/long_file_name__.jpg --> /path/long_file_name.jpg
 
   // TODO maybe convert to lowercase??
   $return_val = prepend_date_prn($date_prefix, $return_val);
-  // print_rob("line " . __LINE__ . " return_val: " . $return_val,false);
 
-  // if($debug_level > 0) {  print_rob("create image name: " . $return_val,false); }
-
-  // print_rob("line " . __LINE__ . " return_val: " . $return_val,false);
   return $return_val;
 }
 
@@ -110,8 +95,7 @@ function prepend_date_prn(string $date_prefix, string $name_prolly_no_date)
       */
   $this_year = date("Y");
 
-  // /// PHP 8 version:  if(!empty($name_prolly_no_date) && !str_starts_with($name_prolly_no_date,$this_year))
-  if(!empty($name_prolly_no_date) && strpos($name_prolly_no_date,$this_year) === false)
+  if(!empty($name_prolly_no_date) && !str_starts_with($name_prolly_no_date,$this_year))
   {
     if($date_prefix) {
       $name_now_has_date = $date_prefix . $name_prolly_no_date;   // e.g. 2021_Apr_05_return_val
@@ -156,10 +140,12 @@ foreach($_POST['image_name'] as $key => $image_name)
     $upload = $images->upload();                   // upload full-sized image
     if($upload && $thumb_dirname_created)
     {
-      $image_path = $upload->getPath();              // full path of full-sized image so we can create embed code
-      if($debug_level >= 4) {print_rob("image_path: " . $image_path,false);}
-      $thumb_path = create_thumbnail($image_path,$thumb_dirname_created);
-      if($image_path && $thumb_path)
+      $full_sized_image_path = $upload->getPath();              // full path of full-sized image so we can create embed code
+      if($debug_level >= 4) {print_rob("image_path: " . $full_sized_image_path,false);}
+      $image_path = create_1000px_nail($full_sized_image_path,$storage_directory);  // new for 2024! 1000-px images
+      $thumb_path = create_thumbnail($full_sized_image_path,$thumb_dirname_created);
+
+      if(!empty($image_path) && !empty($thumb_path))
       {
         if(!empty($description))
         {
@@ -169,7 +155,8 @@ foreach($_POST['image_name'] as $key => $image_name)
         }
         $embed_markdowns[] = embed_markdown_func($image_path, $thumb_path);   // so I can post from my phone
         $html_img_tag_output[] = create_html_img_tag($image_path, $thumb_path);   // so I can get a preview
-      }$html_img_tag_output = array();
+      }
+      $html_img_tag_output = array();
     }
     else
     {
@@ -213,27 +200,56 @@ print_r(implode("\n",$html_img_tag_output));
  *
  *
  */
-function create_thumbnail(string $image_path, string $subdir_for_thumbs)
+function create_thumbnail(string $image_path, string $subdir_for_thumbs): string
 {
   $basename = basename($image_path);   // cool_filename.png
 
   $thumb_path = $subdir_for_thumbs . $basename;   // /path/thumbs/cool_filename.png
-  copy($image_path,$thumb_path);       // OS make a copy of file
-  $thumb_info = getimagesize($thumb_path);  // get deets of file required by \resize()
-  $imgWidth = $thumb_info[0];
-  $imgHeight = $thumb_info[1];
-  $mimeType = basename($thumb_info['mime']);  // basename("image/png") returns "png"
 
-  $success = \Bulletproof\Utils\resize($thumb_path, $mimeType, $imgWidth, $imgHeight, 200, 200, true);
+  print_rob($image_path . " --> " . $thumb_path,false);
+
+  copy($image_path,$thumb_path);       // OS make a copy of file
+  return resize_image($thumb_path, 200, 200);
+}
+
+function create_1000px_nail(string $image_path, string $storage_directory): string
+{
+  $basename = basename($image_path);   // cool_filename.png
+
+  // Get the extension of the file
+  $ext = pathinfo($basename, PATHINFO_EXTENSION);
+
+  // Create a new variable $px_1000_name by inserting _1000 before the extension
+  $px_1000_name = pathinfo($basename, PATHINFO_FILENAME) . "_1000." . $ext;
+
+  if($debug_level >= 5) {print_rob("px_1000_name: " . $px_1000_name,false);}
+
+  $thumb_path = $storage_directory . "/" . $px_1000_name;   // /path/thumbs/cool_filename_1000.png
+  if($debug_level >= 4) {print_rob("px_1000_full_path: " . $thumb_path,false);}
+
+  copy($image_path,$thumb_path);       // OS make a copy of file
+  print_rob("success copied px 1000 path",false);
+  return resize_image($thumb_path, 1000, 1000);
+}
+
+function resize_image(string $image_path, int $maxWidth, int $maxHeight): string
+{
+  $size_deets = getimagesize($image_path);  // get deets of file required by \resize()
+  $imgWidth = $size_deets[0];
+  $imgHeight = $size_deets[1];
+  $mimeType = basename($size_deets['mime']);  // basename("image/png") returns "png"
+
+  $success = \Bulletproof\Utils\resize($image_path, $mimeType, $imgWidth, $imgHeight, $maxWidth, $maxHeight, true);
   if($success)
   {
-    return $thumb_path;
+    return $image_path;
   }
   else
   {
-    return false;
+    return "";
   }
 }
+
 
 function determine_storage_directory(string $save_to, string $sub_dir)
 {
@@ -260,39 +276,34 @@ function determine_storage_directory(string $save_to, string $sub_dir)
   return $return_val;
 }
 
-function process_paths(string $image_path, string $thumb_path)
-{
-  $alt_text = alttextify($image_path);
-  $image_url = urlify($image_path);
-  $thumb_url = urlify($thumb_path);
-  return array($alt_text, $image_url, $thumb_url);
-}
-
 // calling this _func just to distinguish from the variable $embed_markdowns
-function embed_markdown_func(string $image_path, string $thumb_path)
+function embed_markdown_func(string $image_path, string $thumb_path): string
 {
-    list($alt_text, $image_url, $thumb_url) = process_paths($image_path, $thumb_path);
+    $alt_text = alttextify($image_path);
+    $image_url = urlify($image_path);
+    $thumb_url = urlify($thumb_path);
 
     $embed = sprintf("[![%s](%s)](%s)",$alt_text,$thumb_url,$image_url);
 
     return $embed;
 }
 
-function create_html_img_tag(string $image_path, string $thumb_path)
+function create_html_img_tag(string $image_path, string $thumb_path): string
 {
-    list($alt_text, $image_url, $thumb_url) = process_paths($image_path, $thumb_path);
+    $alt_text = alttextify($image_path);
+    $thumb_url = urlify($thumb_path);
 
     $embed = sprintf("<br><img src='%s' alt='%s' />",$thumb_url,$alt_text);
 
     return $embed;
 }
 
-function alttextify(string $image_path)
+function alttextify(string $image_path): string
 {
   return str_replace('_',' ',pathinfo($image_path,PATHINFO_FILENAME));
 }
 
-function urlify(string $image_path)
+function urlify(string $image_path): string
 {
   return str_replace('home/thundergoblin','',$image_path);
 }
