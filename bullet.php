@@ -37,22 +37,22 @@ $html_img_tag_output = array();
 
 function print_rob($object, bool $exit = true)
 {
-    echo("<pre>");
+    echo "<pre>";
     if(is_object($object) && method_exists($object, "toArray"))
     {
         echo "ResultSet => ".print_r($object->toArray(), true);
     } else {
         print_r($object);
     }
-    echo("</pre>");
+    echo "</pre>";
     if($exit) {
         exit;
     }
 }
 
 if($debug_level > 4) {
-  print_rob($_POST,false);
-  print_rob($_FILES,false);
+  print_rob(object: $_POST,exit: false);
+  print_rob(object: $_FILES,exit: false);
 }
 
 /** Use $image_name for image name or fallback to file name (without extension)
@@ -62,18 +62,18 @@ if($debug_level > 4) {
  * @param array $image_info array of file info as sent by <input type="file" />
  *
  */
-function create_image_name($date_prefix, $image_name, $image_info)
+function create_image_name($date_prefix, $image_name, $image_info): string
 {
   // prefer name typed by user (allows naming files here without renaming on device)
-  $return_val = trim($image_name) ?? pathinfo($image_info['name'], PATHINFO_FILENAME);
+  $return_val = trim(string: $image_name) ?? pathinfo(path: $image_info['name'], flags: PATHINFO_FILENAME);
 
   // convert spaces to underscores
-  $return_val = preg_replace('/\s+/', '_', $return_val);   //  https://stackoverflow.com/a/20871407/194309
+  $return_val = preg_replace(pattern: '/\s+/', replacement: '_', subject: $return_val);   //  https://stackoverflow.com/a/20871407/194309
 
-  $return_val = preg_replace('/_+\\./', '.', $return_val);  // /path/long_file_name__.jpg --> /path/long_file_name.jpg
+  $return_val = preg_replace(pattern: '/_+\\./', replacement: '.', subject: $return_val);  // /path/long_file_name__.jpg --> /path/long_file_name.jpg
 
   // TODO maybe convert to lowercase??
-  $return_val = prepend_date_prn($date_prefix, $return_val);
+  $return_val = prepend_date_prn(date_prefix: $date_prefix, name_prolly_no_date: $return_val);
 
   return $return_val;
 }
@@ -83,7 +83,7 @@ function create_image_name($date_prefix, $image_name, $image_info)
  *
  * @param string $name_prolly_no_date probably does not have a date.
  */
-function prepend_date_prn(string $date_prefix, string $name_prolly_no_date)
+function prepend_date_prn(string $date_prefix, string $name_prolly_no_date): string
 {
   /*
       best version I can think of now is actually:
@@ -93,26 +93,26 @@ function prepend_date_prn(string $date_prefix, string $name_prolly_no_date)
       if so, then leave it,
       if not, then prepend $date_prefix
       */
-  $this_year = date("Y");
+  $this_year = date(format: "Y");
 
-  if(!empty($name_prolly_no_date) && !str_starts_with($name_prolly_no_date,$this_year))
+  if(!empty($name_prolly_no_date) && !str_starts_with(haystack: $name_prolly_no_date,needle: $this_year))
   {
     if($date_prefix) {
       $name_now_has_date = $date_prefix . $name_prolly_no_date;   // e.g. 2021_Apr_05_return_val
     }
     else {
-      $name_now_has_date = date("Y_M_d_") . $name_prolly_no_date;   // e.g. 2021_Apr_05_return_val
+      $name_now_has_date = date(format: "Y_M_d_") . $name_prolly_no_date;   // e.g. 2021_Apr_05_return_val
     }
   } else {
     // Name DID have a date, so use it
     $name_now_has_date = $name_prolly_no_date;
   }
-  $name_now_has_date = mb_strtolower($name_now_has_date);       // get rid of capital month from "M" in date
+  $name_now_has_date = mb_strtolower(string: $name_now_has_date);       // get rid of capital month from "M" in date
   return $name_now_has_date;
 }
 $images = new \Bulletproof\Image($_FILES);
 
-$storage_directory = determine_storage_directory($save_to,$sub_dir);
+$storage_directory = determine_storage_directory(save_to: $save_to,sub_dir: $sub_dir);
 
 // Create a thumbnail in the `thumbs/` directory where the full sized file was created
 $thumb_dirname = $storage_directory . "/thumbs/";   // hardcoding thumbs/, because that is the convention on b.robnugen.com
@@ -120,18 +120,18 @@ $thumb_dirname_created = $images->createStorage($thumb_dirname,0755);
 
 // We can easily loop through array $_POST['image_name']
 // but cannot as easily loop through an array of $_FILES['pictures']  (see commit c1f62fab9585ebeecec5)
-if($debug_level >= 4) {print_rob("before foreach POST[image_name]",false);}
+if($debug_level >= 4) {print_rob(object: "before foreach POST[image_name]",exit: false);}
 foreach($_POST['image_name'] as $key => $image_name)
 {
   $key=intval($key);                  // weak-ass security
   htmlspecialchars($image_name);      // weak-ass security
-  if($debug_level >= 5) {print_rob("received image_name: " . $image_name,false);}
+  if($debug_level >= 5) {print_rob(object: "received image_name: " . $image_name,exit: false);}
   $description = $_POST['description'][$key];
   htmlspecialchars($description);
   // prefer image name sent in field, and falls back to name of image file
-  $save_image_name = create_image_name($date_prefix,$image_name,$_FILES["pictures".$key]);
-  if($debug_level >= 4) {print_rob("save_image_name: " . $save_image_name,false);}
-  if($debug_level >= 5) {print_rob("storage_directory: " . $storage_directory,false);}
+  $save_image_name = create_image_name(date_prefix: $date_prefix,image_name: $image_name,image_info: $_FILES["pictures".$key]);
+  if($debug_level >= 4) {print_rob(object: "save_image_name: " . $save_image_name,exit: false);}
+  if($debug_level >= 5) {print_rob(object: "storage_directory: " . $storage_directory,exit: false);}
   if($images["pictures".$key])    // Accessing the key of the image actually tells $images what image to work with
   {
     $images->setName($save_image_name)             // name of full-sized image
@@ -141,9 +141,9 @@ foreach($_POST['image_name'] as $key => $image_name)
     if($upload && $thumb_dirname_created)
     {
       $full_sized_image_path = $upload->getPath();              // full path of full-sized image so we can create embed code
-      if($debug_level >= 4) {print_rob("image_path: " . $full_sized_image_path,false);}
-      $image_path = create_1000px_nail($full_sized_image_path,$storage_directory);  // new for 2024! 1000-px images
-      $thumb_path = create_thumbnail($full_sized_image_path,$thumb_dirname_created);
+      if($debug_level >= 4) {print_rob(object: "image_path: " . $full_sized_image_path,exit: false);}
+      $image_path = create_1000px_nail(image_path: $full_sized_image_path,storage_directory: $storage_directory, debug_level: $debug_level);  // new for 2024! 1000-px images
+      $thumb_path = create_thumbnail(image_path: $full_sized_image_path,subdir_for_thumbs: $thumb_dirname_created);
 
       if(!empty($image_path) && !empty($thumb_path))
       {
@@ -212,7 +212,7 @@ function create_thumbnail(string $image_path, string $subdir_for_thumbs): string
   return resize_image($thumb_path, 200, 200);
 }
 
-function create_1000px_nail(string $image_path, string $storage_directory): string
+function create_1000px_nail(string $image_path, string $storage_directory, int $debug_level): string
 {
   $basename = basename($image_path);   // cool_filename.png
 
