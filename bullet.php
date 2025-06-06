@@ -156,7 +156,6 @@ foreach($_POST['image_name'] as $key => $image_name)
         $embed_markdowns[] = embed_markdown_func($image_path, $thumb_path);   // so I can post from my phone
         $html_img_tag_output[] = create_html_img_tag($image_path, $thumb_path);   // so I can get a preview
       }
-      $html_img_tag_output = array();
     }
     else
     {
@@ -182,7 +181,6 @@ echo "<h1><a href='https://badmin.robnugen.com'>https://badmin.robnugen.com</a><
 
 echo "<h1><a href='https://quick.robnugen.com/poster?text=$encode_markdown'>Post as markdown</a></h1><br><br>";
 
-// Y U NO print image html???
 print_r(implode("\n",$html_img_tag_output));
 
 /**
