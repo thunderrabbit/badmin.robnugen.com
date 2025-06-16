@@ -153,6 +153,7 @@ foreach($_POST['image_name'] as $key => $image_name)
           $embed_markdowns[] = $description;
           $embed_markdowns[] = "";    // gives some <br> around description
         }
+        $thousand_px[] = urlify(image_path: $image_path, prefix: 'https:');   // so I can post to Signal
         $embed_markdowns[] = embed_markdown_func($image_path, $thumb_path);   // so I can post from my phone
         $html_img_tag_output[] = create_html_img_tag($image_path, $thumb_path);   // so I can get a preview
       }
@@ -175,12 +176,52 @@ foreach($_POST['image_name'] as $key => $image_name)
   }
 }  // end foreach($_POST['image_name'] as $key => $image_name)
 
-$encode_markdown = urlencode(implode("\n",$embed_markdowns));
-
+$encode_markdown = urlencode(implode(separator: "\n", array: $embed_markdowns));
+$n_thousand = implode(separator: "\n", array: $thousand_px);
 echo "<h1><a href='https://badmin.robnugen.com'>https://badmin.robnugen.com</a></h1><br><br>";
 
 echo "<h1><a href='https://quick.robnugen.com/poster?text=$encode_markdown'>Post as markdown</a></h1><br><br>";
 
+echo "<pre>" . $n_thousand . "</pre><br><br>";
+
+?>
+<textarea id="clipboard-fallback" shtyle="position: absolute; left: -9999px;"><?php echo $n_thousand; ?></textarea>
+<button onclick="copyContentLink()">Copy image paths to Clipboard</button>
+
+<p>Then send to me on Signal: <a href="https://signal.me/#u/robnugen.70" target="_blank">Message Rob on Signal</a></p>
+
+<script>
+function copyContentLink() {
+  const contentLink = <?php echo $encoded_links; ?>;
+
+  // Try modern Clipboard API
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    navigator.clipboard.writeText(contentLink)
+      .then(() => alert("✅ Link(s) copied! Now open Signal and paste."))
+      .catch(err => {
+        console.warn("Clipboard API failed, falling back...", err);
+        fallbackCopy(contentLink);
+      });
+  } else {
+    fallbackCopy(contentLink);
+  }
+}
+
+function fallbackCopy(text) {
+  const fallback = document.getElementById("clipboard-fallback");
+  fallback.value = text;
+  fallback.select();
+  fallback.setSelectionRange(0, fallback.value.length); // Mobile-safe
+  document.execCommand("copy");
+
+  alert("✅ Link(s) copied using fallback! Now open Signal and paste.");
+}
+</script>
+
+
+<br><br>
+
+<?php
 print_r(implode("\n",$html_img_tag_output));
 
 /**
@@ -301,7 +342,14 @@ function alttextify(string $image_path): string
   return str_replace('_',' ',pathinfo($image_path,PATHINFO_FILENAME));
 }
 
-function urlify(string $image_path): string
+/**
+ * Convert a full system path to a URL path.
+ *
+ * @param string $image_path Full system path of the image.
+ * @param string $prefix 'https:' is useful for emacs
+ * @return string URLified path.
+ */
+function urlify(string $image_path, string $prefix = ""): string
 {
-  return str_replace('home/thundergoblin','',$image_path);
+  return $prefix . str_replace('home/thundergoblin','',$image_path);
 }
