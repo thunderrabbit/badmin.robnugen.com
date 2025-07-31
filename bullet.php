@@ -30,6 +30,8 @@ $date_prefix = $_REQUEST["date_prefix"];
 filter_var($date_prefix, FILTER_SANITIZE_STRING);
 if($debug_level > 0) {  print_rob("date_prefix: " . $date_prefix,false); }
 
+$output = $_REQUEST["output"];
+if($debug_level > 0) {  print_rob("output: " . $output,false); }
 /* arrays which will store specific style of embed info for each image */
 $embed_markdowns = array();   // [![2021 apr 12 alt text](//b.robnugen.com/tmp/thumbs/2021_apr_12_alt_text.png)](//b.robnugen.com/tmp/2021_apr_12_alt_text.png)
 $embed_titles = array();
@@ -143,7 +145,7 @@ foreach($_POST['image_name'] as $key => $image_name)
       $full_sized_image_path = $upload->getPath();              // full path of full-sized image so we can create embed code
       if($debug_level >= 4) {print_rob(object: "image_path: " . $full_sized_image_path,exit: false);}
       $image_path = create_1000px_nail(image_path: $full_sized_image_path,storage_directory: $storage_directory, debug_level: $debug_level);  // new for 2024! 1000-px images
-      $thumb_path = create_thumbnail(image_path: $full_sized_image_path,subdir_for_thumbs: $thumb_dirname_created);
+      $thumb_path = create_thumbnail(image_path: $full_sized_image_path,subdir_for_thumbs: $thumb_dirname_created, debug_level: $debug_level);
 
       if(!empty($image_path) && !empty($thumb_path))
       {
@@ -175,6 +177,13 @@ foreach($_POST['image_name'] as $key => $image_name)
     print_rob($_FILES);
   }
 }  // end foreach($_POST['image_name'] as $key => $image_name)
+
+// Handle JSON output request
+if($output === "json") {
+  header('Content-Type: application/json');
+  echo json_encode($thousand_px);
+  exit;
+}
 
 $encode_markdown = urlencode(implode(separator: "\n", array: $embed_markdowns));
 $n_thousand = implode(separator: "\n", array: $thousand_px);
@@ -239,13 +248,13 @@ print_r(implode("\n",$html_img_tag_output));
  *
  *
  */
-function create_thumbnail(string $image_path, string $subdir_for_thumbs): string
+function create_thumbnail(string $image_path, string $subdir_for_thumbs, int $debug_level): string
 {
   $basename = basename($image_path);   // cool_filename.png
 
   $thumb_path = $subdir_for_thumbs . $basename;   // /path/thumbs/cool_filename.png
 
-  print_rob($image_path . " --> " . $thumb_path,false);
+  if($debug_level >= 2) {print_rob($image_path . " --> " . $thumb_path,false);}
 
   copy($image_path,$thumb_path);       // OS make a copy of file
   return resize_image($thumb_path, 200, 200);
@@ -267,7 +276,7 @@ function create_1000px_nail(string $image_path, string $storage_directory, int $
   if($debug_level >= 4) {print_rob("px_1000_full_path: " . $thumb_path,false);}
 
   copy($image_path,$thumb_path);       // OS make a copy of file
-  print_rob("success copied px 1000 path",false);
+  if($debug_level >= 2) {print_rob("success copied px 1000 path",false); }
   return resize_image($thumb_path, 1000, 1000);
 }
 
