@@ -11,6 +11,16 @@ if (!password_verify($_POST['password'], $bulletproof_password_hash)) {
     exit;
 }
 
+// Allow Marble Track 3 to access this script
+header('Access-Control-Allow-Origin: https://db.marbletrack3.com');
+header('Access-Control-Allow-Methods: POST, OPTIONS');
+header('Access-Control-Allow-Headers: Content-Type');
+
+// Handle preflight requests
+if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
+  exit(0);
+}
+
 $debug_level = $_REQUEST["debug_level"];if (filter_var($debug_level, FILTER_VALIDATE_INT,
       array("options" => array("min_range"=>0, "max_range"=>5))) === false)
 {
@@ -181,7 +191,13 @@ foreach($_POST['image_name'] as $key => $image_name)
 // Handle JSON output request
 if($output === "json") {
   header('Content-Type: application/json');
-  echo json_encode($thousand_px);
+  $response = [
+    'data' => [
+      'photos_processed' => count($thousand_px),
+      'urls' => $thousand_px
+    ]
+  ];
+  echo json_encode($response);
   exit;
 }
 
