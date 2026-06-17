@@ -89,6 +89,46 @@ function resize_image(string $image_path, int $maxWidth, int $maxHeight): string
   }
 }
 
+/**
+ * Bake EXIF orientation into the pixels of a JPEG and re-save it upright.
+ *
+ * Faithful copy of Bulletproof's correctImageOrientation() (bulletproof.php:465),
+ * which the legacy badmin uploader runs inside upload(). The ai-flow bypasses
+ * upload(), so it must call this on the full image BEFORE generating the _1000 +
+ * thumbnail (GD's resize() ignores EXIF, so the source must already be corrected).
+ *
+ * No-op for non-JPEG, missing exif data, or Orientation 1.
+ */
+function correct_image_orientation(string $filename): void
+{
+    if (!function_exists('exif_read_data') || @exif_imagetype($filename) !== IMAGETYPE_JPEG) {
+        return;   // EXIF orientation only applies to JPEG
+    }
+    $exif = @exif_read_data($filename);
+    if (!$exif || !isset($exif['Orientation'])) {
+        return;
+    }
+    $orientation = (int) $exif['Orientation'];
+    if ($orientation === 1) {
+        return;
+    }
+    $img = @imagecreatefromjpeg($filename);
+    if (!$img) {
+        return;
+    }
+    $deg = 0;
+    switch ($orientation) {
+        case 3: $deg = 180; break;
+        case 6: $deg = 270; break;
+        case 8: $deg = 90;  break;
+    }
+    if ($deg) {
+        $img = imagerotate($img, $deg, 0);
+    }
+    imagejpeg($img, $filename, 95);   // re-save upright (GD drops the EXIF tag)
+    imagedestroy($img);
+}
+
 // calling this _func just to distinguish from the variable $embed_markdowns
 function embed_markdown_func(string $image_path, string $thumb_path): string
 {

@@ -99,6 +99,10 @@ if (!@rename($staged_path, $final_path)) {
     fail('could not move staged photo into place');
 }
 
+// ---- bake EXIF orientation into the full image so portrait photos stay upright
+// (must run BEFORE the resizes: GD's resize ignores EXIF). Mirrors legacy badmin.
+correct_image_orientation($final_path);
+
 // ---- generate _1000 + thumb (reused from image_resize_lib) ------------------
 $image_1000 = create_1000px_nail($final_path, $category_dir, 0);
 $thumb_path = create_thumbnail($final_path, $thumb_dir, 0);
