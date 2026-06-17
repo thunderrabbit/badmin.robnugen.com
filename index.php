@@ -5,6 +5,7 @@ $date_of_month = date("d");
 $date_prefix = strtolower(date("Y_M_d_"));
 
 echo $date_of_month;
+echo ' <a href="/ai/">ai</a>';
 
 $day_number = $date_of_month + 15;
 
