@@ -8,7 +8,8 @@
  *  - dir_slug_item()     : slug -> underscore form (multi-photo folder convention)
  *  - recent_item_names() : last N chosen names from the manifest (style examples)
  *  - item_model_id()     : 'haiku'|'sonnet' -> API model id
- *  - claude_name_image() : vision call -> {names:[3], category, description}
+ *  - claude_name_image()  : single-photo vision call -> {names:[3], category, description}
+ *  - claude_name_images() : multi-photo vision call -> + per-photo views[]
  *
  * No side effects on include (safe to require from anywhere).
  */
@@ -81,60 +82,41 @@ function item_media_type(string $image_path): string
 }
 
 /**
- * Ask Claude to look at the photo and propose 3 names + a category + a description.
+ * Low-level: POST one or more images + a text prompt to Claude's vision API.
  *
- * @return array {
- *   ok: bool, names: string[], category: string, description: string,
- *   model: string, error: string, raw: string
- * }
- *  On any failure ok=false and the UI falls back to a manual name field —
- *  AI is assistive, never blocking.
+ * The caller builds the prompt and parses the returned text — this just does the
+ * transport. AI is assistive, so it never throws: failures come back as ok=false.
+ *
+ * @param string[] $image_paths full paths, sent as image blocks in order
+ * @return array { ok: bool, text: string, error: string, raw: string }
  */
-function claude_name_image(string $image_path, string $model, array $recent_names, string $api_key, array $categories): array
+function item_anthropic_vision(array $image_paths, string $prompt, string $model_id, string $api_key): array
 {
-    $out = ['ok' => false, 'names' => [], 'category' => '', 'description' => '',
-            'model' => item_model_id($model), 'error' => '', 'raw' => ''];
+    $out = ['ok' => false, 'text' => '', 'error' => '', 'raw' => ''];
 
-    if (!is_file($image_path)) {
-        $out['error'] = "image not found: $image_path";
-        return $out;
-    }
     if ($api_key === '' || str_contains($api_key, 'replace-me')) {
         $out['error'] = "Anthropic API key not configured";
         return $out;
     }
 
-    $b64 = base64_encode((string) file_get_contents($image_path));
-
-    $cat_list = implode(', ', $categories);
-    $examples = $recent_names
-        ? "Here are recent filenames Rob has chosen, so you match his style:\n- " . implode("\n- ", $recent_names) . "\n\n"
-        : "";
-
-    $prompt =
-        "You are helping Rob catalog a single physical possession he is photographing " .
-        "before leaving Japan. Look at the photo and name the OBJECT (not the scene).\n\n" .
-        $examples .
-        "Return STRICT JSON only (no prose, no code fence) with exactly these keys:\n" .
-        "{\n" .
-        "  \"names\": [3 short human-readable names for the object, 2-5 words each, " .
-        "specific not generic, e.g. \"blue denim jacket\" not \"jacket\"],\n" .
-        "  \"category\": one of [$cat_list] that best fits, or \"other\" if none fit " .
-        "(\"heavy\" = large items hard to ship: furniture, appliances, safe),\n" .
-        "  \"description\": one factual sentence describing the object\n" .
-        "}";
+    $content = [];
+    foreach ($image_paths as $path) {
+        if (!is_file($path)) {
+            $out['error'] = "image not found: $path";
+            return $out;
+        }
+        $content[] = ['type' => 'image', 'source' => [
+            'type'       => 'base64',
+            'media_type' => item_media_type($path),
+            'data'       => base64_encode((string) file_get_contents($path)),
+        ]];
+    }
+    $content[] = ['type' => 'text', 'text' => $prompt];
 
     $body = json_encode([
-        'model'      => $out['model'],
+        'model'      => $model_id,
         'max_tokens' => 500,
-        'messages'   => [[
-            'role'    => 'user',
-            'content' => [
-                ['type' => 'image', 'source' => [
-                    'type' => 'base64', 'media_type' => item_media_type($image_path), 'data' => $b64]],
-                ['type' => 'text', 'text' => $prompt],
-            ],
-        ]],
+        'messages'   => [['role' => 'user', 'content' => $content]],
     ]);
 
     $ch = curl_init('https://api.anthropic.com/v1/messages');
@@ -164,18 +146,124 @@ function claude_name_image(string $image_path, string $model, array $recent_name
         return $out;
     }
 
-    $api = json_decode($resp, true);
+    $api  = json_decode($resp, true);
     $text = $api['content'][0]['text'] ?? '';
     if ($text === '') {
         $out['error'] = "empty model response";
         return $out;
     }
+    $out['ok']   = true;
+    $out['text'] = $text;
+    return $out;
+}
 
-    // Strip a ```json ... ``` fence if the model added one, then decode.
+/** Strip a ```json ... ``` fence the model may have added, then decode to array ([] on failure). */
+function item_parse_json(string $text): array
+{
     $text = trim($text);
     $text = preg_replace('/^```(?:json)?\s*|\s*```$/m', '', $text);
     $parsed = json_decode(trim($text), true);
-    if (!is_array($parsed) || !isset($parsed['names']) || !is_array($parsed['names'])) {
+    return is_array($parsed) ? $parsed : [];
+}
+
+/**
+ * Coerce the model's "views" into exactly $n filename-safe single-word slugs.
+ * Missing/blank entries fall back to their 1-based position; duplicates get a
+ * numeric suffix so per-item filenames never collide (front, front -> front, front-2).
+ */
+function item_normalize_views($views, int $n): array
+{
+    $views = is_array($views) ? array_values($views) : [];
+    $out   = [];
+    for ($i = 0; $i < $n; $i++) {
+        $v = isset($views[$i]) ? slugify_item((string) $views[$i]) : '';
+        if ($v !== '') { $v = explode('-', $v)[0]; }   // single word only
+        $out[] = $v !== '' ? $v : (string) ($i + 1);
+    }
+    $seen = [];
+    foreach ($out as $i => $v) {
+        $base = $v; $k = 2;
+        while (isset($seen[$v])) { $v = "$base-$k"; $k++; }
+        $seen[$v] = true;
+        $out[$i]  = $v;
+    }
+    return $out;
+}
+
+/**
+ * Single-photo convenience wrapper around claude_name_images().
+ *
+ * @return array { ok, names[], category, description, model, error, raw }
+ *  On any failure ok=false and the UI falls back to a manual name field —
+ *  AI is assistive, never blocking.
+ */
+function claude_name_image(string $image_path, string $model, array $recent_names, string $api_key, array $categories): array
+{
+    $out = claude_name_images([$image_path], $model, $recent_names, $api_key, $categories);
+    unset($out['views']);   // single-photo callers don't use per-photo angles
+    return $out;
+}
+
+/**
+ * Ask Claude to look at all photos of ONE object and propose 3 names + a category
+ * + a description + a per-photo "view" (angle) word, aligned to image order.
+ *
+ * @param string[] $image_paths the staged photos of a single item, in order
+ * @return array {
+ *   ok: bool, names: string[], category: string, description: string,
+ *   views: string[] (one per image), model: string, error: string, raw: string
+ * }
+ */
+function claude_name_images(array $image_paths, string $model, array $recent_names, string $api_key, array $categories): array
+{
+    $out = ['ok' => false, 'names' => [], 'category' => '', 'description' => '',
+            'views' => [], 'model' => item_model_id($model), 'error' => '', 'raw' => ''];
+
+    $image_paths = array_values($image_paths);
+    $n = count($image_paths);
+    if ($n === 0) {
+        $out['error'] = "no images given";
+        return $out;
+    }
+
+    $cat_list = implode(', ', $categories);
+    $examples = $recent_names
+        ? "Here are recent filenames Rob has chosen, so you match his style:\n- " . implode("\n- ", $recent_names) . "\n\n"
+        : "";
+
+    $intro = $n === 1
+        ? "You are helping Rob catalog a single physical possession he is photographing " .
+          "before leaving Japan. Look at the photo and name the OBJECT (not the scene).\n\n"
+        : "You are helping Rob catalog a single physical possession he is photographing " .
+          "before leaving Japan. There are $n photos of the SAME object from different " .
+          "angles, given in order. Name the OBJECT (not the scene).\n\n";
+
+    $views_key = $n === 1
+        ? "  \"views\": [exactly 1 short lowercase angle word for the photo]\n"
+        : "  \"views\": [exactly $n short lowercase angle words, ONE PER PHOTO IN ORDER, " .
+          "each a single word like \"front\", \"back\", \"spine\", \"label\", \"detail\"]\n";
+
+    $prompt =
+        $intro . $examples .
+        "Return STRICT JSON only (no prose, no code fence) with exactly these keys:\n" .
+        "{\n" .
+        "  \"names\": [3 short human-readable names for the object, 2-5 words each, " .
+        "specific not generic, e.g. \"blue denim jacket\" not \"jacket\"],\n" .
+        "  \"category\": one of [$cat_list] that best fits, or \"other\" if none fit " .
+        "(\"heavy\" = large items hard to ship: furniture, appliances, safe),\n" .
+        "  \"description\": one factual sentence describing the object,\n" .
+        $views_key .
+        "}";
+
+    $resp = item_anthropic_vision($image_paths, $prompt, $out['model'], $api_key);
+    $out['raw'] = $resp['raw'];
+    if (!$resp['ok']) {
+        $out['error'] = $resp['error'];
+        return $out;
+    }
+
+    $parsed = item_parse_json($resp['text']);
+    if (!isset($parsed['names']) || !is_array($parsed['names'])) {
         $out['error'] = "could not parse JSON from model";
         return $out;
     }
@@ -183,6 +271,7 @@ function claude_name_image(string $image_path, string $model, array $recent_name
     $out['names']       = array_values(array_filter(array_map('strval', $parsed['names'])));
     $out['category']    = isset($parsed['category']) ? strtolower(trim((string) $parsed['category'])) : '';
     $out['description'] = isset($parsed['description']) ? trim((string) $parsed['description']) : '';
+    $out['views']       = item_normalize_views($parsed['views'] ?? [], $n);
     $out['ok']          = count($out['names']) > 0;
     return $out;
 }
