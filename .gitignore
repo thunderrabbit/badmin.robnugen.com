@@ -4,3 +4,5 @@ vendor/*
 test.php
 resources
 uploads
+*_config.php
+.dh-diag
