@@ -20,7 +20,17 @@ if (is_file(ITEMS_MANIFEST)) {
         if (is_array($row) && !empty($row['slug'])) { $uploaded[$row['slug']] = true; }
     }
 }
-$pending = array_values(array_filter($feed, fn($it) => !empty($it['slug']) && !isset($uploaded[$it['slug']])));
+$uploaded_slugs = array_keys($uploaded);
+// An item is "photographed" if an upload slug equals its slug, or starts with
+// "<slug>-". The /ai/ uploader appends descriptors (the-cosmic-war-paperback-book);
+// the #4 uploader files under the exact slug, so it matches outright.
+$photographed = function (string $slug) use ($uploaded_slugs): bool {
+    foreach ($uploaded_slugs as $u) {
+        if ($u === $slug || strncmp($u, $slug . '-', strlen($slug) + 1) === 0) { return true; }
+    }
+    return false;
+};
+$pending = array_values(array_filter($feed, fn($it) => !empty($it['slug']) && !$photographed($it['slug'])));
 $total   = count($feed);
 $done    = $total - count($pending);
 ?>
@@ -73,7 +83,12 @@ $done    = $total - count($pending);
     <label for="filter">Pick an item to photograph</label>
     <input type="search" id="filter" placeholder="filter by name…">
     <div class="list" id="list"></div>
-    <p class="muted" id="emptyNote"><?php echo $pending ? '' : 'Nothing pending — every catalog item has a photo. 🎉'; ?></p>
+    <p class="muted" id="emptyNote"><?php
+      echo $pending ? ''
+         : (empty($feed)
+              ? 'No feed loaded — deploy sayonara_feed.json to the items dir.'
+              : 'Nothing pending — every catalog item has a photo. 🎉');
+    ?></p>
   </section>
 
   <section id="captureSection" class="hidden">
