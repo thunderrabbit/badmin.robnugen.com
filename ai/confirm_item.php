@@ -127,6 +127,7 @@ foreach ($photos as $p) {
     correct_image_orientation($final);
 
     $image_1000 = create_1000px_nail($final, $dest_dir, 0);
+    create_500px_nail($final, $dest_dir, 0);
     $thumb_path = create_thumbnail($final, $thumb_dir, 0);
 
     $rel = $rel_dir . "/" . $basename;     // path under the items root

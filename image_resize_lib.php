@@ -71,6 +71,20 @@ function create_1000px_nail(string $image_path, string $storage_directory, int $
   return resize_image($thumb_path, 1000, 1000);
 }
 
+function create_500px_nail(string $image_path, string $storage_directory, int $debug_level): string
+{
+  $basename = basename($image_path);   // cool_filename.png
+
+  $ext = pathinfo($basename, PATHINFO_EXTENSION);
+  $px_500_name = pathinfo($basename, PATHINFO_FILENAME) . "_500." . $ext;
+
+  $thumb_path = $storage_directory . "/" . $px_500_name;   // /path/cool_filename_500.png
+  if($debug_level >= 4) {print_rob("px_500_full_path: " . $thumb_path,false);}
+
+  copy($image_path,$thumb_path);       // OS make a copy of file
+  return resize_image($thumb_path, 500, 500);
+}
+
 function resize_image(string $image_path, int $maxWidth, int $maxHeight): string
 {
   $size_deets = getimagesize($image_path);  // get deets of file required by \resize()
