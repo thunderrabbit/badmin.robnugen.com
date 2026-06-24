@@ -48,6 +48,9 @@ require_once __DIR__ . "/secure_config.php";   // SECURE_BUCKETS (no side effect
   </style>
 </head>
 <body>
+  <a href="/">journal</a>
+  | <a href="/ai/">ai</a>
+  | <a href="/ai_secure/">🔒 secure 🔒</a>
   <h1>🔒 Name a secure document</h1>
   <p class="muted">Filed outside the public web — receipts, paid bills, tax docs. Never web-served.</p>
 
