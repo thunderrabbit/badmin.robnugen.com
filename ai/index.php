@@ -50,6 +50,7 @@ require_once __DIR__ . "/item_naming.php";   // $ITEM_CATEGORIES (no side effect
 <body>
   <a href="/">journal</a>
   | <a href="/ai/">ai</a>
+  | <a href="/sayonara/">sayonara</a>
   | <a href="/ai_secure/">🔒 secure 🔒</a>
   <h1>📦 Name an item</h1>
 
