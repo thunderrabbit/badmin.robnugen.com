@@ -60,6 +60,13 @@ if ($bucket_dir === null) {
     fail('staged group has no valid bucket');
 }
 
+// accounting tag is likewise authoritative from the sidecar (badmin #281).
+// Re-validate (defends a stale / hand-edited sidecar); fail safe to 'unknown'.
+$account_tag = $meta['account_tag'] ?? 'unknown';
+if (!account_tag_ok($account_tag)) {
+    $account_tag = 'unknown';
+}
+
 // keep only photos whose staged file still exists, preserving order
 $photos = array_values(array_filter($photos, function ($p) use ($allowed_ext) {
     $f = SECURE_BIN_STAGING . "/" . ($p['file'] ?? '');
@@ -115,18 +122,25 @@ foreach ($photos as $p) {
 
     $rel = $rel_dir . "/" . $basename;     // path under secure_bin
 
-    // one manifest line per photo, INSIDE secure_bin (never the public tree)
-    $line = json_encode([
+    // one record per photo: appended to the manifest AND written as a per-image
+    // sidecar (<image-filename>.json) so the Lemur-13 reconciler can pair tag→image.
+    $record = [
         'item'        => $slug,
         'file'        => $rel,
         'bucket'      => $bucket,
+        'account_tag' => $account_tag,
         'view'        => $view,
         'name'        => $name,
         'description' => $description,
         'captured'    => date('c'),
         'orig'        => $p['orig'] ?? '',
-    ], JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
-    @file_put_contents(SECURE_BIN_MANIFEST, $line . "\n", FILE_APPEND | LOCK_EX);
+    ];
+    $json = json_encode($record, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
+
+    // manifest line, INSIDE secure_bin (never the public tree)
+    @file_put_contents(SECURE_BIN_MANIFEST, $json . "\n", FILE_APPEND | LOCK_EX);
+    // per-image sidecar next to the filed image, e.g. 2026-jun-19-foo.jpg.json
+    @file_put_contents($final . ".json", $json);
 
     $filed[] = ['file' => $rel, 'view' => $view];
 }
