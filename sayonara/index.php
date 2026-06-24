@@ -1,45 +1,19 @@
 <?php
 /**
- * sayonara/index.php — #4 list-driven uploader for the Sayonara Sale catalog.
+ * sayonara/index.php — #4 AI uploader for the Sayonara Sale catalog.
  *
- * Shows the items still needing photos (catalog feed MINUS slugs already in the
- * manifest), lets Rob pick one, shoot photo(s), and file them under that item's
- * slug via upload.php. No AI: the name/slug/category come from the feed.
+ * Upload photo(s) of an item -> Claude suggests a name + category + description
+ * (reusing ../ai/name_item.php) -> Rob confirms/edits -> confirm.php files the
+ * images AND writes a catalog sidecar that Lemur 13 scoops to build the item page.
  */
-require_once __DIR__ . "/../ai/item_naming.php";   // ITEMS_BASE_DIR, ITEMS_MANIFEST (no side effects)
-
-$FEED = ITEMS_BASE_DIR . "/sayonara_feed.json";
-
-$feed = is_file($FEED) ? (json_decode((string) file_get_contents($FEED), true) ?: []) : [];
-
-// slugs already photographed = present in the manifest
-$uploaded = [];
-if (is_file(ITEMS_MANIFEST)) {
-    foreach (file(ITEMS_MANIFEST, FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES) as $ln) {
-        $row = json_decode($ln, true);
-        if (is_array($row) && !empty($row['slug'])) { $uploaded[$row['slug']] = true; }
-    }
-}
-$uploaded_slugs = array_keys($uploaded);
-// An item is "photographed" if an upload slug equals its slug, or starts with
-// "<slug>-". The /ai/ uploader appends descriptors (the-cosmic-war-paperback-book);
-// the #4 uploader files under the exact slug, so it matches outright.
-$photographed = function (string $slug) use ($uploaded_slugs): bool {
-    foreach ($uploaded_slugs as $u) {
-        if ($u === $slug || strncmp($u, $slug . '-', strlen($slug) + 1) === 0) { return true; }
-    }
-    return false;
-};
-$pending = array_values(array_filter($feed, fn($it) => !empty($it['slug']) && !$photographed($it['slug'])));
-$total   = count($feed);
-$done    = $total - count($pending);
+require_once __DIR__ . "/../ai/item_naming.php";   // $ITEM_CATEGORIES (no side effects)
 ?>
 <!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Sayonara uploader · b.robnugen.com</title>
+  <title>Sayonara item uploader · b.robnugen.com</title>
   <style>
     * { box-sizing: border-box; }
     body { font-family: system-ui, -apple-system, sans-serif; font-size: 18px; line-height: 1.4;
@@ -47,172 +21,178 @@ $done    = $total - count($pending);
     h1 { font-size: 1.25rem; margin: 0 0 12px; }
     section { background: #fff; border: 1px solid #ddd; border-radius: 10px; padding: 14px; margin-bottom: 14px; }
     label { display: block; font-weight: 600; margin: 8px 0 4px; }
-    input[type=text], input[type=password], input[type=file], input[type=search] {
+    input[type=text], input[type=password], textarea, input[type=file] {
       width: 100%; font-size: 1rem; padding: 12px; border: 1px solid #bbb; border-radius: 8px; background: #fff; }
+    textarea { min-height: 5em; }
     button { font-size: 1rem; padding: 12px 16px; border: 0; border-radius: 8px; background: #2563eb;
              color: #fff; font-weight: 600; cursor: pointer; width: 100%; margin-top: 14px; }
     button.secondary { background: #e5e7eb; color: #111; }
     button:disabled { opacity: .5; }
-    .muted { color: #666; font-size: .9rem; }
-    .ok { color: #15803d; } .err { color: #b91c1c; }
-    #status { min-height: 1.4em; font-weight: 600; }
-    .list { display: flex; flex-direction: column; gap: 8px; max-height: 46vh; overflow:auto; margin-top: 8px; }
-    .item { display: flex; justify-content: space-between; align-items: center; gap: 10px;
-            padding: 12px; border: 1px solid #ccc; border-radius: 8px; background: #fff; cursor: pointer; }
-    .item:hover { border-color: #2563eb; }
-    .item .cat { font-size: .8rem; color: #777; }
-    .item.selected { background: #2563eb; color: #fff; border-color: #2563eb; }
-    .item.selected .cat { color: #dbeafe; }
+    .chips { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 6px; }
+    .chip { display: inline-block; padding: 10px 14px; border: 1px solid #bbb; border-radius: 20px;
+            background: #fff; font-size: .95rem; cursor: pointer; }
+    .chip.selected { background: #2563eb; color: #fff; border-color: #2563eb; }
+    .chip.name { border-style: dashed; }
     .strip { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 8px; }
     .shot { width: 96px; } .shot img { width: 96px; height: 96px; object-fit: cover; border-radius: 8px; border: 1px solid #ddd; }
     .hidden { display: none; }
-    .pill { display:inline-block; background:#eef; border-radius: 12px; padding: 2px 10px; font-size:.85rem; }
+    .muted { color: #666; font-size: .9rem; } .ok { color: #15803d; } .err { color: #b91c1c; }
+    #status { min-height: 1.4em; font-weight: 600; }
     a { word-break: break-all; }
   </style>
 </head>
 <body>
   <a href="/">journal</a> | <a href="/ai/">ai</a> | <a href="/ai_secure/">🔒 secure</a>
-  <h1>📦 Sayonara uploader <span class="pill"><?php echo $done; ?>/<?php echo $total; ?> photographed</span></h1>
+  <h1>📦 Sayonara item uploader</h1>
 
   <section>
     <label for="password">Password</label>
     <input type="password" id="password" autocomplete="current-password" placeholder="badmin password">
   </section>
 
-  <section id="pickSection">
-    <label for="filter">Pick an item to photograph</label>
-    <input type="search" id="filter" placeholder="filter by name…">
-    <div class="list" id="list"></div>
-    <p class="muted" id="emptyNote"><?php
-      echo $pending ? ''
-         : (empty($feed)
-              ? 'No feed loaded — deploy sayonara_feed.json to the items dir.'
-              : 'Nothing pending — every catalog item has a photo. 🎉');
-    ?></p>
-  </section>
-
-  <section id="captureSection" class="hidden">
-    <label>Selected: <span id="selName"></span> <span class="muted" id="selCat"></span></label>
-    <label for="photo">Photo(s) of this item (front, back, …)</label>
+  <section id="capture">
+    <label for="photo">Photos of the item (one or more angles)</label>
     <input type="file" id="photo" accept="image/*" capture="environment" multiple>
-    <div class="strip" id="strip"></div>
-    <button id="fileBtn" disabled>Upload &amp; file ✅</button>
-    <button id="cancelBtn" class="secondary">↩︎ Back to list</button>
+    <div class="strip" id="photoStrip"></div>
+    <button id="addBtn" class="secondary hidden">➕ Add another photo</button>
+    <button id="nameBtn" disabled>Name &amp; describe it ✨</button>
     <p id="status" class="muted"></p>
   </section>
 
-  <section id="resultSection" class="hidden">
-    <p class="ok">Filed! 🎉 <span id="resName"></span></p>
-    <div class="strip" id="resThumbs"></div>
+  <section id="review" class="hidden">
+    <label>Suggested names <span class="muted" id="modelTag"></span></label>
+    <div class="chips" id="nameChips"></div>
+
+    <label for="name">Name (tap a suggestion or edit)</label>
+    <input type="text" id="name" placeholder="human-readable name">
+
+    <label>Category</label>
+    <div class="chips" id="catChips"></div>
+    <input type="text" id="catNew" placeholder="…or type a new category">
+
+    <label for="desc">Description (editable — this becomes the item page text)</label>
+    <textarea id="desc" placeholder="what it is, why a new owner would be happy, condition…"></textarea>
+
+    <button id="sonnetBtn" class="secondary">Re-ask with Sonnet 🧠</button>
+    <button id="confirmBtn">Confirm &amp; file ✅</button>
+  </section>
+
+  <section id="result" class="hidden">
+    <p class="ok">Filed into the catalog! 🎉 <span id="resName"></span></p>
+    <div class="strip" id="resultThumbs"></div>
+    <p class="muted">Now on Lemur 13: <code>scoop_sayonara.sh</code> → <code>perl generate_sayonara.pl</code> → rebuild.</p>
     <button id="nextBtn">Next item ➕</button>
   </section>
 
 <script>
-const PENDING = <?php echo json_encode($pending, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES); ?>;
+const CATEGORIES = <?php echo json_encode($ITEM_CATEGORIES); ?>;
 const $ = id => document.getElementById(id);
-let selected = null;     // {slug,name,category}
-let photos = [];         // File[]
-
-const pw = $('password'), status = $('status');
+let state = { token: '', model: 'haiku', category: '' };
+let photos = [], views = [];
+const pw = $('password'), photo = $('photo'), nameBtn = $('nameBtn'), status = $('status');
 function setStatus(m, c) { status.textContent = m; status.className = c || 'muted'; }
 
-// ---- pending list -----------------------------------------------------------
-function renderList() {
-  const q = ($('filter').value || '').toLowerCase();
-  const list = $('list');
-  list.innerHTML = '';
-  PENDING.filter(it => !it._done && (it.name || '').toLowerCase().includes(q)).forEach(it => {
-    const row = document.createElement('div');
-    row.className = 'item' + (selected && selected.slug === it.slug ? ' selected' : '');
-    row.innerHTML = '<span>' + escapeHtml(it.name) + '</span><span class="cat">' + escapeHtml(it.category || '') + '</span>';
-    row.onclick = () => selectItem(it);
-    list.appendChild(row);
-  });
-}
-function escapeHtml(s){ return (s||'').replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c])); }
-$('filter').addEventListener('input', renderList);
-
-function selectItem(it) {
-  selected = it;
-  photos = [];
-  $('selName').textContent = it.name;
-  $('selCat').textContent = it.category ? '(' + it.category + ')' : '';
-  $('captureSection').classList.remove('hidden');
-  $('resultSection').classList.add('hidden');
-  renderStrip(); renderList(); setStatus('');
-  $('captureSection').scrollIntoView({ behavior: 'smooth' });
-}
-
-// ---- photo strip ------------------------------------------------------------
-$('photo').addEventListener('change', () => {
-  for (const f of $('photo').files) photos.push(f);
-  $('photo').value = '';
-  renderStrip();
-});
 function renderStrip() {
-  const strip = $('strip'); strip.innerHTML = '';
-  photos.forEach(f => {
+  const strip = $('photoStrip'); strip.innerHTML = '';
+  photos.forEach((f, i) => {
     const cell = document.createElement('div'); cell.className = 'shot';
-    const img = document.createElement('img'); img.src = URL.createObjectURL(f);
-    cell.appendChild(img); strip.appendChild(cell);
+    const img = document.createElement('img'); img.src = URL.createObjectURL(f); cell.appendChild(img);
+    if (views[i]) { const v = document.createElement('div'); v.textContent = views[i]; v.style.fontSize = '.75rem'; v.style.textAlign='center'; cell.appendChild(v); }
+    strip.appendChild(cell);
   });
-  $('fileBtn').disabled = photos.length === 0;
+  $('addBtn').classList.toggle('hidden', photos.length === 0);
+  nameBtn.disabled = photos.length === 0;
+}
+function changedPhotos() { state.token = ''; renderStrip(); }
+photo.addEventListener('change', () => { for (const f of photo.files) { photos.push(f); views.push(''); } photo.value=''; changedPhotos(); });
+$('addBtn').onclick = () => photo.click();
+
+function renderCats() {
+  $('catChips').innerHTML = '';
+  CATEGORIES.forEach(c => {
+    const el = document.createElement('span');
+    el.className = 'chip' + (state.category === c ? ' selected' : '');
+    el.textContent = c;
+    el.onclick = () => { state.category = c; $('catNew').value = ''; renderCats(); };
+    $('catChips').appendChild(el);
+  });
+}
+$('catNew').addEventListener('input', () => { state.category = ''; renderCats(); });
+
+function renderNames(names) {
+  $('nameChips').innerHTML = '';
+  (names || []).forEach(n => {
+    const el = document.createElement('span'); el.className = 'chip name'; el.textContent = n;
+    el.onclick = () => { $('name').value = n; }; $('nameChips').appendChild(el);
+  });
+  if (names && names[0]) $('name').value = names[0];
 }
 
-$('cancelBtn').onclick = () => {
-  selected = null; photos = [];
-  $('captureSection').classList.add('hidden');
-  renderList();
-};
-
-// ---- upload -----------------------------------------------------------------
-$('fileBtn').onclick = async () => {
+async function askNames(model) {
   if (!pw.value) { setStatus('Enter the password first.', 'err'); return; }
-  if (!selected || !photos.length) { setStatus('Pick an item and add a photo.', 'err'); return; }
+  if (!photos.length) { setStatus('Add at least one photo.', 'err'); return; }
+  state.model = model;
   const fd = new FormData();
-  fd.append('password', pw.value);
-  fd.append('slug', selected.slug);
-  photos.forEach(f => fd.append('photo[]', f));
-  $('fileBtn').disabled = true;
-  setStatus('Uploading ' + photos.length + ' photo' + (photos.length > 1 ? 's' : '') + '…');
+  fd.append('password', pw.value); fd.append('model', model);
+  if (model === 'haiku' || !state.token) { photos.forEach(f => fd.append('photo[]', f)); }
+  else { fd.append('token', state.token); }
+  nameBtn.disabled = true; $('sonnetBtn').disabled = true;
+  setStatus('Asking ' + model + ' about ' + photos.length + ' photo' + (photos.length>1?'s':'') + '…');
   try {
-    const r = await fetch('upload.php', { method: 'POST', body: fd });
+    const r = await fetch('../ai/name_item.php', { method: 'POST', body: fd });
     const j = await r.json();
-    if (!j.ok) { setStatus('Could not file: ' + (j.error || 'error'), 'err'); $('fileBtn').disabled = false; return; }
-    // mark done + show result
-    const it = PENDING.find(p => p.slug === selected.slug); if (it) it._done = true;
-    $('resName').textContent = j.name || selected.name;
-    const t = $('resThumbs'); t.innerHTML = '';
+    setStatus(j.ok ? ('Got suggestions from ' + model + ' ✨') : ('AI: ' + (j.error||'failed') + ' — you can still type a name.'), j.ok ? 'ok' : 'err');
+    state.token = j.token || state.token;
+    views = j.views || []; renderStrip();
+    $('modelTag').textContent = j.model ? '(' + j.model + ')' : '';
+    if (j.description) $('desc').value = j.description;
+    renderNames(j.names);
+    if (j.category && CATEGORIES.includes(j.category)) { state.category = j.category; $('catNew').value = ''; }
+    else if (j.category) { $('catNew').value = j.category; state.category = ''; }
+    renderCats();
+    $('review').classList.remove('hidden');
+  } catch (e) {
+    setStatus('Network error: ' + e.message + ' — type a name to file manually.', 'err');
+    $('review').classList.remove('hidden'); renderNames([]); renderCats();
+  } finally { nameBtn.disabled = false; $('sonnetBtn').disabled = false; }
+}
+nameBtn.onclick = () => askNames('haiku');
+$('sonnetBtn').onclick = () => askNames('sonnet');
+
+$('confirmBtn').onclick = async () => {
+  const name = $('name').value.trim();
+  if (!name) { setStatus('A name is required.', 'err'); return; }
+  if (!state.token) { setStatus('Tap “Name & describe it ✨” first so the photos are staged.', 'err'); return; }
+  const category = state.category || $('catNew').value.trim();
+  if (!category) { setStatus('Pick or type a category.', 'err'); return; }
+  const fd = new FormData();
+  fd.append('password', pw.value); fd.append('token', state.token);
+  fd.append('name', name); fd.append('category', category);
+  fd.append('description', $('desc').value); fd.append('model', state.model);
+  $('confirmBtn').disabled = true; setStatus('Filing…');
+  try {
+    const r = await fetch('confirm.php', { method: 'POST', body: fd });
+    const j = await r.json();
+    if (!j.ok) { setStatus('Could not file: ' + (j.error||'error'), 'err'); $('confirmBtn').disabled = false; return; }
+    $('resName').textContent = name;
+    const t = $('resultThumbs'); t.innerHTML = '';
     (j.photos || []).forEach(p => {
       const cell = document.createElement('div'); cell.className = 'shot';
       const a = document.createElement('a'); a.href = p.url; a.target = '_blank';
-      const img = document.createElement('img'); img.src = p.thumb || p.url;
-      a.appendChild(img); cell.appendChild(a); t.appendChild(cell);
+      const img = document.createElement('img'); img.src = p.thumb || p.url; a.appendChild(img); cell.appendChild(a); t.appendChild(cell);
     });
-    $('captureSection').classList.add('hidden');
-    $('resultSection').classList.remove('hidden');
-    setStatus('');
-    selected = null; photos = [];
-    updateCount();
-  } catch (e) {
-    setStatus('Network error: ' + e.message, 'err'); $('fileBtn').disabled = false;
-  }
+    $('review').classList.add('hidden'); $('result').classList.remove('hidden'); setStatus('');
+  } catch (e) { setStatus('Network error filing: ' + e.message, 'err'); $('confirmBtn').disabled = false; }
 };
 
 $('nextBtn').onclick = () => {
-  $('resultSection').classList.add('hidden');
-  renderList();
-  window.scrollTo(0, 0);
+  state = { token: '', model: 'haiku', category: '' }; photos = []; views = [];
+  photo.value=''; $('name').value=''; $('catNew').value=''; $('desc').value=''; $('nameChips').innerHTML=''; $('resultThumbs').innerHTML='';
+  $('result').classList.add('hidden'); $('review').classList.add('hidden'); $('confirmBtn').disabled = false; setStatus('');
+  renderStrip(); window.scrollTo(0, 0);
 };
 
-function updateCount() {
-  const doneNow = PENDING.filter(p => p._done).length;
-  // (server count is authoritative on reload; this reflects this session's progress)
-  const pill = document.querySelector('.pill');
-  if (pill) pill.textContent = (<?php echo $done; ?> + doneNow) + '/' + <?php echo $total; ?> + ' photographed';
-}
-
-renderList();
+renderStrip(); renderCats();
 </script>
 </body>
 </html>
