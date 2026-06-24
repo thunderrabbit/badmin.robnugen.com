@@ -4,9 +4,6 @@ date_default_timezone_set ("Asia/Tokyo");
 $date_of_month = date("d");
 $date_prefix = strtolower(date("Y_M_d_"));
 
-echo $date_of_month;
-echo ' <a href="/ai/">ai</a>';
-
 $day_number = $date_of_month + 15;
 
 
@@ -15,6 +12,9 @@ $day_number = $date_of_month + 15;
 
 ?>
 
+<a href="/">journal</a>
+| <a href="/ai/">ai</a>
+| <a href="/ai_secure/">🔒 secure 🔒</a>
 <form method="POST" action="bullet.php" enctype="multipart/form-data" >
   <input type="hidden" name="MAX_FILE_SIZE" value="10000000"/>
   <div>

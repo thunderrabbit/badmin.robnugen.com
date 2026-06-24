@@ -48,6 +48,9 @@ require_once __DIR__ . "/secure_config.php";   // SECURE_BUCKETS (no side effect
   </style>
 </head>
 <body>
+  <a href="/">journal</a>
+  | <a href="/ai/">ai</a>
+  | <a href="/ai_secure/">🔒 secure 🔒</a>
   <h1>🔒 Name a secure document</h1>
   <p class="muted">Filed outside the public web — receipts, paid bills, tax docs. Never web-served.</p>
 
@@ -59,6 +62,9 @@ require_once __DIR__ . "/secure_config.php";   // SECURE_BUCKETS (no side effect
   <section id="capture">
     <label>Which bucket?</label>
     <div class="chips" id="bucketChips"></div>
+
+    <label>Which account paid?</label>
+    <div class="chips" id="accountChips"></div>
 
     <label for="photo">Photo(s) of the document (pages / front-back of ONE document)</label>
     <input type="file" id="photo" accept="image/*" capture="environment" multiple>
@@ -89,8 +95,9 @@ require_once __DIR__ . "/secure_config.php";   // SECURE_BUCKETS (no side effect
 
 <script>
 const BUCKETS = <?php echo json_encode(SECURE_BUCKETS); ?>;
+const ACCOUNT_TAGS = <?php echo json_encode(ACCOUNT_TAGS); ?>;
 const $ = id => document.getElementById(id);
-let state = { token: '', model: 'haiku', bucket: '' };
+let state = { token: '', model: 'haiku', bucket: '', accountTag: 'unknown' };
 let photos = [];   // File objects, in order
 let views  = [];   // Claude-suggested view per photo (parallel to photos)
 
@@ -107,6 +114,20 @@ function renderBuckets() {
     el.textContent = b;
     el.onclick = () => { state.bucket = b; state.token = ''; renderBuckets(); };
     $('bucketChips').appendChild(el);
+  });
+}
+
+// ---- account tag chips (which account paid; default 'unknown') ---------------
+// The tag rides on the next name_item.php call (which always rewrites the sidecar),
+// so it does NOT invalidate the staged group the way changing the bucket does.
+function renderAccountChips() {
+  $('accountChips').innerHTML = '';
+  ACCOUNT_TAGS.forEach(t => {
+    const el = document.createElement('span');
+    el.className = 'chip' + (state.accountTag === t ? ' selected' : '');
+    el.textContent = t;
+    el.onclick = () => { state.accountTag = t; renderAccountChips(); };
+    $('accountChips').appendChild(el);
   });
 }
 
@@ -170,6 +191,7 @@ async function askNames(model) {
   const fd = new FormData();
   fd.append('password', pw.value);
   fd.append('bucket', state.bucket);
+  fd.append('account_tag', state.accountTag);
   fd.append('model', model);
   if (model === 'haiku' || !state.token) {
     photos.forEach(f => fd.append('photo[]', f));   // (re)stage the whole group
@@ -238,19 +260,22 @@ function renderResult(j) {
 
 // ---- reset for next document ------------------------------------------------
 $('nextBtn').onclick = () => {
-  // keep the bucket selected — Rob usually files a run of the same kind
-  state = { token: '', model: 'haiku', bucket: state.bucket };
+  // keep the bucket selected — Rob usually files a run of the same kind.
+  // reset the account tag: each document is a deliberate choice (no stale carry-over).
+  state = { token: '', model: 'haiku', bucket: state.bucket, accountTag: 'unknown' };
   photos = []; views = [];
   photo.value = '';
   $('name').value = ''; $('aiDesc').textContent = '';
   $('nameChips').innerHTML = ''; $('resultFiles').innerHTML = '';
   $('result').classList.add('hidden'); $('review').classList.add('hidden');
   $('confirmBtn').disabled = false; setStatus('');
+  renderAccountChips();
   renderStrip();
   window.scrollTo(0, 0);
 };
 
 renderBuckets();
+renderAccountChips();
 renderStrip();
 </script>
 </body>

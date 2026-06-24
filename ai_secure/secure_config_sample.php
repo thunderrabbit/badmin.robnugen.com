@@ -22,6 +22,20 @@ const SECURE_BIN_MANIFEST = SECURE_BIN_ROOT . "/secure_manifest.jsonl";
 const SECURE_BUCKETS = ['receipts', 'bills_paid', 'taxes_filed'];
 
 /**
+ * Accounting tag: which account/source paid for the captured document, so a future
+ * Lemur-13 reconciler can scope-match it to the right statement (badmin #281).
+ * Chip order matters — index.php renders the row in this order; 'unknown' is the
+ * first chip and the default. Never trust a client value; validate via account_tag_ok().
+ */
+const ACCOUNT_TAGS = ['unknown', 'cash', 'wise', 'mufg-bank', 'google-wallet', 'paypay', 'paypal', 'mufg-card'];
+
+/** True iff $t is an allowed accounting tag. */
+function account_tag_ok(string $t): bool
+{
+    return in_array($t, ACCOUNT_TAGS, true);
+}
+
+/**
  * Whitelist a bucket key and return its absolute dir, or null if not allowed.
  * Never concatenate user input into a path without passing it through here.
  */
