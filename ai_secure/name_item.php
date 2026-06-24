@@ -139,6 +139,13 @@ if (secure_bucket_dir($bucket) === null) {
     fail('invalid or missing bucket (allowed: ' . implode(', ', SECURE_BUCKETS) . ')');
 }
 
+// accounting tag (badmin #281): which account paid. Never trust the client value;
+// anything off the allowlist fails safe to the default 'unknown' rather than blocking.
+$account_tag = $_POST['account_tag'] ?? 'unknown';
+if (!account_tag_ok($account_tag)) {
+    $account_tag = 'unknown';
+}
+
 $model = (($_POST['model'] ?? '') === 'sonnet') ? 'sonnet' : 'haiku';
 
 // token is server-generated; on re-ask / add-another the client sends it back. Sanitize hard.
@@ -214,7 +221,7 @@ foreach ($photos as $i => &$p) {
     $p['view'] = $result['views'][$i] ?? (string) ($i + 1);
 }
 unset($p);
-@file_put_contents(SECURE_BIN_STAGING . "/$token.json", json_encode(['bucket' => $bucket, 'photos' => $photos]));
+@file_put_contents(SECURE_BIN_STAGING . "/$token.json", json_encode(['bucket' => $bucket, 'account_tag' => $account_tag, 'photos' => $photos]));
 
 echo json_encode([
     'ok'          => $result['ok'],
