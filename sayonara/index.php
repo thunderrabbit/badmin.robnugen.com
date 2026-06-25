@@ -80,7 +80,13 @@ require_once __DIR__ . "/../ai/item_naming.php";   // $ITEM_CATEGORIES (no side 
   <section id="result" class="hidden">
     <p class="ok">Filed into the catalog! 🎉 <span id="resName"></span></p>
     <div class="strip" id="resultThumbs"></div>
-    <p class="muted">Now on Lemur 13: <code>scoop_sayonara.sh</code> → <code>perl generate_sayonara.pl</code> → rebuild.</p>
+    <p class="muted">Now on Lemur 13: <code>bare</code>
+      <br><code>./scoop_sayonara.sh</code> →
+      <br><code>./sayonara_generate.pl</code> →
+      <br><code>git add content/sayonara/ data/sayonara/</code> →
+      <br><code>git commit -m monkey</code> →
+      <br><code>git push</code> →
+      <br><code>bbfr</code></p>
     <button id="nextBtn">Next item ➕</button>
   </section>
 
