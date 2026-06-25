@@ -53,6 +53,10 @@ foreach (preg_split('/[,\s]+/', $_POST['tags'] ?? '', -1, PREG_SPLIT_NO_EMPTY) a
 $description = trim($_POST['description'] ?? '');
 $model       = (($_POST['model'] ?? '') === 'sonnet') ? 'sonnet' : 'haiku';
 
+// optional used price (Haiku-suggested, Rob-verified). Blank -> null (price later on Lemur 13).
+$price_raw = preg_replace('/[^0-9]/', '', $_POST['price_jpy'] ?? '');
+$price_jpy = ($price_raw === '') ? null : (int) $price_raw;
+
 // ---- load the staged photo group (staged by ../ai/name_item.php) -------------
 $allowed_ext = ['jpg', 'jpeg', 'png', 'gif', 'webp'];
 $sidecar_stage = ITEMS_STAGING . "/$token.json";
@@ -133,7 +137,7 @@ $record = [
     'event'       => '',
     'images'      => array_map(fn($e) => $e['url'], $filed),
     'thumb'       => $filed[0]['thumb'] ?? '',
-    'price_jpy'   => null,
+    'price_jpy'   => $price_jpy,
     'quantity'    => 1,
     'sold'        => false,
     'captured'    => date('c'),

@@ -73,6 +73,9 @@ require_once __DIR__ . "/../ai/item_naming.php";   // $ITEM_CATEGORIES (no side 
     <label for="desc">Description (editable — this becomes the item page text)</label>
     <textarea id="desc" placeholder="what it is, why a new owner would be happy, condition…"></textarea>
 
+    <label for="price">Suggested used price ¥ (verify / edit — blank = decide later)</label>
+    <input type="text" id="price" inputmode="numeric" placeholder="e.g. 1500">
+
     <button id="sonnetBtn" class="secondary">Re-ask with Sonnet 🧠</button>
     <button id="confirmBtn">Confirm &amp; file ✅</button>
   </section>
@@ -152,6 +155,7 @@ async function askNames(model) {
     views = j.views || []; renderStrip();
     $('modelTag').textContent = j.model ? '(' + j.model + ')' : '';
     if (j.description) $('desc').value = j.description;
+    if (j.price_jpy != null) $('price').value = j.price_jpy;
     renderNames(j.names);
     if (j.category && CATEGORIES.includes(j.category)) { state.category = j.category; $('catNew').value = ''; }
     else if (j.category) { $('catNew').value = j.category; state.category = ''; }
@@ -175,6 +179,7 @@ $('confirmBtn').onclick = async () => {
   fd.append('password', pw.value); fd.append('token', state.token);
   fd.append('name', name); fd.append('category', category);
   fd.append('description', $('desc').value); fd.append('model', state.model);
+  fd.append('price_jpy', $('price').value.replace(/[^0-9]/g, ''));
   $('confirmBtn').disabled = true; setStatus('Filing…');
   try {
     const r = await fetch('confirm.php', { method: 'POST', body: fd });
@@ -193,7 +198,7 @@ $('confirmBtn').onclick = async () => {
 
 $('nextBtn').onclick = () => {
   state = { token: '', model: 'haiku', category: '' }; photos = []; views = [];
-  photo.value=''; $('name').value=''; $('catNew').value=''; $('desc').value=''; $('nameChips').innerHTML=''; $('resultThumbs').innerHTML='';
+  photo.value=''; $('name').value=''; $('catNew').value=''; $('desc').value=''; $('price').value=''; $('nameChips').innerHTML=''; $('resultThumbs').innerHTML='';
   $('result').classList.add('hidden'); $('review').classList.add('hidden'); $('confirmBtn').disabled = false; setStatus('');
   renderStrip(); window.scrollTo(0, 0);
 };

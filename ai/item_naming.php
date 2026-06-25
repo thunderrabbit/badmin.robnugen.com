@@ -217,6 +217,7 @@ function claude_name_image(string $image_path, string $model, array $recent_name
 function claude_name_images(array $image_paths, string $model, array $recent_names, string $api_key, array $categories): array
 {
     $out = ['ok' => false, 'names' => [], 'category' => '', 'description' => '',
+            'price_jpy' => null,
             'views' => [], 'model' => item_model_id($model), 'error' => '', 'raw' => ''];
 
     $image_paths = array_values($image_paths);
@@ -252,6 +253,10 @@ function claude_name_images(array $image_paths, string $model, array $recent_nam
         "  \"category\": one of [$cat_list] that best fits, or \"other\" if none fit " .
         "(\"heavy\" = large items hard to ship: furniture, appliances, safe),\n" .
         "  \"description\": one factual sentence describing the object,\n" .
+        "  \"price_jpy\": estimated typical SECOND-HAND price in Japan in whole yen " .
+        "(integer only, no commas or symbols) — what a used one realistically sells for " .
+        "quickly on Mercari / Yahoo Auctions. Rob is decluttering, not maximizing, so estimate " .
+        "modestly. Use null if you genuinely cannot tell.,\n" .
         $views_key .
         "}";
 
@@ -271,6 +276,10 @@ function claude_name_images(array $image_paths, string $model, array $recent_nam
     $out['names']       = array_values(array_filter(array_map('strval', $parsed['names'])));
     $out['category']    = isset($parsed['category']) ? strtolower(trim((string) $parsed['category'])) : '';
     $out['description'] = isset($parsed['description']) ? trim((string) $parsed['description']) : '';
+    if (array_key_exists('price_jpy', $parsed)) {
+        $p = $parsed['price_jpy'];
+        $out['price_jpy'] = (is_numeric($p) && $p > 0) ? (int) round($p) : null;
+    }
     $out['views']       = item_normalize_views($parsed['views'] ?? [], $n);
     $out['ok']          = count($out['names']) > 0;
     return $out;

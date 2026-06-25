@@ -143,6 +143,7 @@ echo json_encode([
     'names'       => $result['names'],
     'category'    => $result['category'],
     'description' => $result['description'],
+    'price_jpy'   => $result['price_jpy'] ?? null,
     'views'       => $result['views'],
     'model'       => $model,
     'error'       => $result['error'],
