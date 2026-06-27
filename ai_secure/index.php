@@ -52,6 +52,7 @@ require_once __DIR__ . "/secure_config.php";   // SECURE_BUCKETS (no side effect
   | <a href="/ai/">ai</a>
   | <a href="/sayonara/">sayonara</a>
   | <a href="/ai_secure/">🔒 secure 🔒</a>
+  | <a href="/cash_balance/">💵 cash</a>
   <h1>🔒 Name a secure document</h1>
   <p class="muted">Filed outside the public web — receipts, paid bills, tax docs. Never web-served.</p>
 
@@ -93,6 +94,8 @@ require_once __DIR__ . "/secure_config.php";   // SECURE_BUCKETS (no side effect
     <div id="resultFiles"></div>
     <button id="nextBtn">Next document ➕</button>
   </section>
+
+  <p class="muted"><a href="/cash_balance/">💵 Update cash balances →</a></p>
 
 <script>
 const BUCKETS = <?php echo json_encode(SECURE_BUCKETS); ?>;

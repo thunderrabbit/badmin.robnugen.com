@@ -16,6 +16,7 @@ $day_number = $date_of_month + 15;
 | <a href="/ai/">ai</a>
 | <a href="/sayonara/">sayonara</a>
 | <a href="/ai_secure/">🔒 secure 🔒</a>
+| <a href="/cash_balance/">💵 cash</a>
 <form method="POST" action="bullet.php" enctype="multipart/form-data" >
   <input type="hidden" name="MAX_FILE_SIZE" value="10000000"/>
   <div>
