@@ -19,7 +19,7 @@ const SECURE_BIN_STAGING  = SECURE_BIN_ROOT . "/.staging";
 const SECURE_BIN_MANIFEST = SECURE_BIN_ROOT . "/secure_manifest.jsonl";
 
 /** The only destinations ai_secure will ever write to. Keys are the routing buckets. */
-const SECURE_BUCKETS = ['receipts', 'bills_paid', 'taxes_filed'];
+const SECURE_BUCKETS = ['receipts', 'bills_paid', 'taxes_filed', 'statements'];
 
 /**
  * Accounting tag: which account/source paid for the captured document, so a future

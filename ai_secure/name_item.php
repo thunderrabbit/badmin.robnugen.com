@@ -80,6 +80,8 @@ function claude_name_secure_docs(array $image_paths, string $model, string $buck
                          "\"tokyo gas may\", \"softbank mobile 2026 05\", \"tepco electricity april\".",
         'taxes_filed' => "a TAX DOCUMENT (return, statement, form). Name it jurisdiction + form/type + year, e.g. " .
                          "\"us 1040 2025\", \"japan final return 2025\", \"fbar 2025\".",
+        'statements'  => "a BANK / ACCOUNT STATEMENT. Name it institution + account + period, e.g. " .
+                         "\"mufg checking 2026 05\", \"wise usd 2026 q1\", \"paypal april 2026\".",
     ];
     $guide = $guides[$bucket] ?? "a financial document. Name it by its issuer and what it is.";
 
