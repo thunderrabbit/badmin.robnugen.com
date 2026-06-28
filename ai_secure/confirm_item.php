@@ -67,6 +67,13 @@ if (!account_tag_ok($account_tag)) {
     $account_tag = 'unknown';
 }
 
+// YNAB category hint is likewise authoritative from the sidecar (set at stage time).
+// Re-validate (defends a stale / hand-edited sidecar); fail safe to '' = no hint.
+$category = $meta['category'] ?? '';
+if (!category_ok($category)) {
+    $category = '';
+}
+
 // keep only photos whose staged file still exists, preserving order
 $photos = array_values(array_filter($photos, function ($p) use ($allowed_ext) {
     $f = SECURE_BIN_STAGING . "/" . ($p['file'] ?? '');
@@ -129,6 +136,7 @@ foreach ($photos as $p) {
         'file'        => $rel,
         'bucket'      => $bucket,
         'account_tag' => $account_tag,
+        'category'    => $category,
         'view'        => $view,
         'name'        => $name,
         'description' => $description,

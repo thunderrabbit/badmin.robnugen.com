@@ -148,6 +148,14 @@ if (!account_tag_ok($account_tag)) {
     $account_tag = 'unknown';
 }
 
+// YNAB category hint (optional): the full "Group: Subcategory" string, validated
+// against the vocabulary. Empty / off-list fails safe to '' = "no hint, the YNAB
+// agent categorizes from scratch". Like account_tag, it rides the sidecar rewrite.
+$category = trim($_POST['category'] ?? '');
+if (!category_ok($category)) {
+    $category = '';
+}
+
 $model = (($_POST['model'] ?? '') === 'sonnet') ? 'sonnet' : 'haiku';
 
 // token is server-generated; on re-ask / add-another the client sends it back. Sanitize hard.
@@ -223,12 +231,13 @@ foreach ($photos as $i => &$p) {
     $p['view'] = $result['views'][$i] ?? (string) ($i + 1);
 }
 unset($p);
-@file_put_contents(SECURE_BIN_STAGING . "/$token.json", json_encode(['bucket' => $bucket, 'account_tag' => $account_tag, 'photos' => $photos]));
+@file_put_contents(SECURE_BIN_STAGING . "/$token.json", json_encode(['bucket' => $bucket, 'account_tag' => $account_tag, 'category' => $category, 'photos' => $photos]));
 
 echo json_encode([
     'ok'          => $result['ok'],
     'token'       => $token,
     'bucket'      => $bucket,
+    'category'    => $category,
     'count'       => count($photos),
     'names'       => $result['names'],
     'description' => $result['description'],
