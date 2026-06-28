@@ -1,5 +1,5 @@
 <?php
-require_once __DIR__ . "/secure_config.php";   // SECURE_BUCKETS + category helpers (no side effects on include)
+require_once "/home/thundergoblin/secure_config.php";   // SECURE_BUCKETS + category helpers (above web root, no side effects on include)
 
 // The 📍active cash currencies (from the cash board) drive which quick category chips
 // show. Read exactly as cash_balance/index.php does; tolerate a missing/malformed file.

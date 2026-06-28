@@ -22,7 +22,7 @@ header('Content-Type: application/json');
 
 require_once "/home/thundergoblin/bulletproof_config.php";   // $bulletproof_password_hash
 require_once __DIR__ . "/../ai/item_naming.php";             // slugify_item, dir_slug_item (no side effects)
-require_once __DIR__ . "/secure_config.php";                 // SECURE_BIN_* + secure_bucket_dir()
+require_once "/home/thundergoblin/secure_config.php";        // SECURE_BIN_* + secure_bucket_dir() (above web root)
 
 function fail(string $msg): void
 {

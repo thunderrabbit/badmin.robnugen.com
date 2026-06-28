@@ -1,5 +1,5 @@
 <?php
-require_once __DIR__ . "/../ai_secure/secure_config.php";   // CASH_* (no side effects on include)
+require_once "/home/thundergoblin/secure_config.php";   // CASH_* (above web root, no side effects on include)
 
 /**
  * Latest snapshot for one currency = the last VALID JSON line of its append-only file.

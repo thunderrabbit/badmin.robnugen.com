@@ -14,7 +14,7 @@ date_default_timezone_set("Asia/Tokyo");
 header('Content-Type: application/json');
 
 require_once "/home/thundergoblin/bulletproof_config.php";   // $bulletproof_password_hash
-require_once __DIR__ . "/../ai_secure/secure_config.php";    // CASH_* + cash_snapshot_path()
+require_once "/home/thundergoblin/secure_config.php";    // CASH_* + cash_snapshot_path() (above web root)
 
 function fail(string $msg): void
 {

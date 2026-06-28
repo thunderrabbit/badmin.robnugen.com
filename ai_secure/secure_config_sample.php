@@ -1,12 +1,15 @@
 <?php
 /**
- * secure_config_sample.php — template for ai_secure/secure_config.php.
+ * secure_config_sample.php — template for /home/thundergoblin/secure_config.php.
  *
- * Copy to secure_config.php (git-ignored by the *_config.php rule). There is NO
- * secret in here; it is a config only so the secure-bin root can be overridden
- * per environment and so the path lives in exactly one place.
+ * Copy ABOVE the web root, exactly like bulletproof_config.php / anthropic_config.php:
+ *   cp ai_secure/secure_config_sample.php /home/thundergoblin/secure_config.php
+ * Every page requires it by that absolute path. There is NO secret in here — it is
+ * paths + whitelists — but a config file has no business inside the served tree
+ * (https://badmin.robnugen.com/ai_secure/secure_config.php), so it lives above it.
+ * (git-ignored by the *_config.php rule; only this sample is committed.)
  *
- * secure_bin lives OUTSIDE the public web root (/home/thundergoblin/b.robnugen.com).
+ * secure_bin ALSO lives OUTSIDE the public web root (/home/thundergoblin/b.robnugen.com).
  * Nothing under SECURE_BIN_ROOT is ever web-served — that is the whole point.
  *
  * One-time server setup (as the thundergoblin user):
