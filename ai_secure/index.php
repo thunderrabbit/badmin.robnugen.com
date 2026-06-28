@@ -1,5 +1,14 @@
 <?php
-require_once __DIR__ . "/secure_config.php";   // SECURE_BUCKETS (no side effects on include)
+require_once __DIR__ . "/secure_config.php";   // SECURE_BUCKETS + category helpers (no side effects on include)
+
+// The 📍active cash currencies (from the cash board) drive which quick category chips
+// show. Read exactly as cash_balance/index.php does; tolerate a missing/malformed file.
+$active_data       = is_file(CASH_ACTIVE_FILE)
+    ? (json_decode((string) file_get_contents(CASH_ACTIVE_FILE), true) ?: [])
+    : [];
+$active            = array_values(array_filter($active_data['active'] ?? [], 'cash_currency_ok'));
+$common_categories = secure_common_categories($active);   // union-deduped quick chips
+$all_categories    = secure_categories()['all'];          // full searchable vocabulary
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -31,6 +40,10 @@ require_once __DIR__ . "/secure_config.php";   // SECURE_BUCKETS (no side effect
             border-radius: 20px; background: #fff; font-size: .95rem; cursor: pointer; }
     .chip.selected { background: #2563eb; color: #fff; border-color: #2563eb; }
     .chip.name { border-style: dashed; }
+    .catresults { margin-top: 6px; }
+    .catresults .row { padding: 10px 12px; border: 1px solid #ddd; border-radius: 8px;
+                       background: #fff; margin-top: 6px; cursor: pointer; font-size: .95rem; }
+    .catresults .row:active { background: #eef; }
     .strip { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 8px; }
     .shot { position: relative; width: 96px; }
     .shot img { width: 96px; height: 96px; object-fit: cover; border-radius: 8px;
@@ -68,6 +81,11 @@ require_once __DIR__ . "/secure_config.php";   // SECURE_BUCKETS (no side effect
     <label>Which account paid?</label>
     <div class="chips" id="accountChips"></div>
 
+    <label>Which category? <span class="muted">(optional — YNAB agent refines)</span></label>
+    <div class="chips" id="categoryChips"></div>
+    <input type="text" id="categorySearch" placeholder="🔍 search all categories…" autocomplete="off">
+    <div class="catresults" id="categoryResults"></div>
+
     <label for="photo">Photo(s) of the document (pages / front-back of ONE document)</label>
     <input type="file" id="photo" accept="image/*" capture="environment" multiple>
     <div class="strip" id="photoStrip"></div>
@@ -100,8 +118,10 @@ require_once __DIR__ . "/secure_config.php";   // SECURE_BUCKETS (no side effect
 <script>
 const BUCKETS = <?php echo json_encode(SECURE_BUCKETS); ?>;
 const ACCOUNT_TAGS = <?php echo json_encode(ACCOUNT_TAGS); ?>;
+const COMMON_CATEGORIES = <?php echo json_encode($common_categories); ?>;   // active-currency quick chips
+const ALL_CATEGORIES    = <?php echo json_encode($all_categories); ?>;      // full searchable vocabulary
 const $ = id => document.getElementById(id);
-let state = { token: '', model: 'haiku', bucket: '', accountTag: 'unknown' };
+let state = { token: '', model: 'haiku', bucket: '', accountTag: 'unknown', category: '' };
 let photos = [];   // File objects, in order
 let views  = [];   // Claude-suggested view per photo (parallel to photos)
 
@@ -134,6 +154,57 @@ function renderAccountChips() {
     $('accountChips').appendChild(el);
   });
 }
+
+// ---- category chips + search (optional YNAB hint) ---------------------------
+// Quick chips come from the 📍active cash currency(ies); the search box reaches the
+// whole vocabulary. Single-select with NONE allowed (tap the selected chip to clear).
+// Chips show a short label (text after "Group: "); the full string is the stored value.
+// Like accountTag, the category just rides the next name_item call — it does NOT
+// invalidate the staged group, so changing it never re-stages photos.
+function catLabel(c) { const i = c.indexOf(': '); return i === -1 ? c : c.slice(i + 2); }
+
+function renderCategories() {
+  const wrap = $('categoryChips');
+  wrap.innerHTML = '';
+  const chips = COMMON_CATEGORIES.slice();
+  // a search-picked category that isn't a quick chip still shows (selected) so it's clearable
+  if (state.category && !chips.includes(state.category)) chips.unshift(state.category);
+  if (!chips.length) {
+    const hint = document.createElement('span');
+    hint.className = 'muted';
+    hint.textContent = 'No quick categories for your active currency — search below.';
+    wrap.appendChild(hint);
+  }
+  chips.forEach(c => {
+    const el = document.createElement('span');
+    el.className = 'chip' + (state.category === c ? ' selected' : '');
+    el.textContent = catLabel(c);
+    el.title = c;
+    el.onclick = () => { state.category = (state.category === c ? '' : c); renderCategories(); };
+    wrap.appendChild(el);
+  });
+}
+
+function renderCatResults(q) {
+  const box = $('categoryResults');
+  box.innerHTML = '';
+  q = (q || '').trim().toLowerCase();
+  if (!q) return;
+  ALL_CATEGORIES.filter(c => c.toLowerCase().includes(q)).slice(0, 8).forEach(c => {
+    const row = document.createElement('div');
+    row.className = 'row';
+    row.textContent = c;                       // full string in results, to disambiguate
+    row.onclick = () => {
+      state.category = c;
+      $('categorySearch').value = '';
+      renderCatResults('');
+      renderCategories();
+    };
+    box.appendChild(row);
+  });
+}
+
+$('categorySearch').addEventListener('input', e => renderCatResults(e.target.value));
 
 // ---- photo strip ------------------------------------------------------------
 function renderStrip() {
@@ -196,6 +267,7 @@ async function askNames(model) {
   fd.append('password', pw.value);
   fd.append('bucket', state.bucket);
   fd.append('account_tag', state.accountTag);
+  fd.append('category', state.category);
   fd.append('model', model);
   if (model === 'haiku' || !state.token) {
     photos.forEach(f => fd.append('photo[]', f));   // (re)stage the whole group
@@ -265,21 +337,24 @@ function renderResult(j) {
 // ---- reset for next document ------------------------------------------------
 $('nextBtn').onclick = () => {
   // keep the bucket selected — Rob usually files a run of the same kind.
-  // reset the account tag: each document is a deliberate choice (no stale carry-over).
-  state = { token: '', model: 'haiku', bucket: state.bucket, accountTag: 'unknown' };
+  // reset the account tag + category: each document is a deliberate choice (no stale carry-over).
+  state = { token: '', model: 'haiku', bucket: state.bucket, accountTag: 'unknown', category: '' };
   photos = []; views = [];
   photo.value = '';
   $('name').value = ''; $('aiDesc').textContent = '';
   $('nameChips').innerHTML = ''; $('resultFiles').innerHTML = '';
+  $('categorySearch').value = ''; renderCatResults('');
   $('result').classList.add('hidden'); $('review').classList.add('hidden');
   $('confirmBtn').disabled = false; setStatus('');
   renderAccountChips();
+  renderCategories();
   renderStrip();
   window.scrollTo(0, 0);
 };
 
 renderBuckets();
 renderAccountChips();
+renderCategories();
 renderStrip();
 </script>
 </body>
