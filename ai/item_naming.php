@@ -90,7 +90,7 @@ function item_media_type(string $image_path): string
  * @param string[] $image_paths full paths, sent as image blocks in order
  * @return array { ok: bool, text: string, error: string, raw: string }
  */
-function item_anthropic_vision(array $image_paths, string $prompt, string $model_id, string $api_key): array
+function item_anthropic_vision(array $image_paths, string $prompt, string $model_id, string $api_key, int $max_tokens = 500): array
 {
     $out = ['ok' => false, 'text' => '', 'error' => '', 'raw' => ''];
 
@@ -115,7 +115,7 @@ function item_anthropic_vision(array $image_paths, string $prompt, string $model
 
     $body = json_encode([
         'model'      => $model_id,
-        'max_tokens' => 500,
+        'max_tokens' => $max_tokens,
         'messages'   => [['role' => 'user', 'content' => $content]],
     ]);
 
