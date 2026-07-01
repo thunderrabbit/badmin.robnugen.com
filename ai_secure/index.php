@@ -64,6 +64,7 @@ $all_categories    = secure_categories()['all'];          // full searchable voc
   <a href="/">journal</a>
   | <a href="/ai/">ai</a>
   | <a href="/sayonara/">sayonara</a>
+  | <a href="/items/">🏠 items</a>
   | <a href="/ai_secure/">🔒 secure 🔒</a>
   | <a href="/cash_balance/">💵 cash</a>
   <h1>🔒 Name a secure document</h1>

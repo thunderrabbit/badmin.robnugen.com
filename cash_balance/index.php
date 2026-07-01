@@ -91,6 +91,7 @@ $active = array_values(array_filter($active_data['active'] ?? [], 'cash_currency
   <a href="/">journal</a>
   | <a href="/ai/">ai</a>
   | <a href="/sayonara/">sayonara</a>
+  | <a href="/items/">🏠 items</a>
   | <a href="/ai_secure/">🔒 secure 🔒</a>
   | <a href="/cash_balance/">💵 cash</a>
   <h1>💵 Cash balances</h1>
