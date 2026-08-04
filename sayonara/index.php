@@ -2,11 +2,12 @@
 /**
  * sayonara/index.php — #4 AI uploader for the Sayonara Sale catalog.
  *
- * Upload photo(s) of an item -> Claude suggests a name + category + description
- * (reusing ../ai/name_item.php) -> Rob confirms/edits -> confirm.php files the
+ * Upload photo(s) of an item -> Claude suggests a name + category + tags +
+ * description (reusing ../ai/name_item.php) -> Rob confirms/edits, tapping tag
+ * chips drawn from the catalog's own vocabulary -> confirm.php files the
  * images AND writes a catalog sidecar that Lemur 13 scoops to build the item page.
  */
-require_once __DIR__ . "/../ai/item_naming.php";   // $ITEM_CATEGORIES (no side effects)
+require_once __DIR__ . "/../ai/item_naming.php";   // $ITEM_CATEGORIES, item_tag_vocab (no side effects)
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -70,6 +71,10 @@ require_once __DIR__ . "/../ai/item_naming.php";   // $ITEM_CATEGORIES (no side 
     <div class="chips" id="catChips"></div>
     <input type="text" id="catNew" placeholder="…or type a new category">
 
+    <label>Tags <span class="muted">(tap to toggle — these drive the catalog filter)</span></label>
+    <div class="chips" id="tagChips"></div>
+    <input type="text" id="tagNew" placeholder="…or type new tags, comma separated">
+
     <label for="desc">Description (editable — this becomes the item page text)</label>
     <textarea id="desc" placeholder="what it is, why a new owner would be happy, condition…"></textarea>
 
@@ -95,8 +100,9 @@ require_once __DIR__ . "/../ai/item_naming.php";   // $ITEM_CATEGORIES (no side 
 
 <script>
 const CATEGORIES = <?php echo json_encode($ITEM_CATEGORIES); ?>;
+const TAGS = <?php echo json_encode(item_tag_vocab()); ?>;   // tags already in the catalog, most-used first
 const $ = id => document.getElementById(id);
-let state = { token: '', model: 'haiku', category: '' };
+let state = { token: '', model: 'haiku', category: '', tags: [] };
 let photos = [], views = [];
 const pw = $('password'), photo = $('photo'), nameBtn = $('nameBtn'), status = $('status');
 function setStatus(m, c) { status.textContent = m; status.className = c || 'muted'; }
@@ -127,6 +133,26 @@ function renderCats() {
   });
 }
 $('catNew').addEventListener('input', () => { state.category = ''; renderCats(); });
+
+// Tags are additive where a category is exclusive, so chips toggle instead of
+// selecting, and typing in tagNew does not clear the chosen chips.
+function renderTags() {
+  $('tagChips').innerHTML = '';
+  TAGS.forEach(t => {
+    const el = document.createElement('span');
+    el.className = 'chip' + (state.tags.includes(t) ? ' selected' : '');
+    el.textContent = t;
+    el.onclick = () => {
+      const i = state.tags.indexOf(t);
+      if (i < 0) { state.tags.push(t); } else { state.tags.splice(i, 1); }
+      renderTags();
+    };
+    $('tagChips').appendChild(el);
+  });
+}
+function typedTags() { return $('tagNew').value.split(/[,\s]+/).map(s => s.trim()).filter(Boolean); }
+// A tag invented mid-session becomes a chip right away — the page does not reload between items.
+function learnTags(tags) { (tags || []).forEach(t => { if (!TAGS.includes(t)) TAGS.push(t); }); }
 
 function renderNames(names) {
   $('nameChips').innerHTML = '';
@@ -160,10 +186,13 @@ async function askNames(model) {
     if (j.category && CATEGORIES.includes(j.category)) { state.category = j.category; $('catNew').value = ''; }
     else if (j.category) { $('catNew').value = j.category; state.category = ''; }
     renderCats();
+    learnTags(j.tags);   // union, so a Sonnet re-ask never drops chips Rob already picked
+    (j.tags || []).forEach(t => { if (!state.tags.includes(t)) state.tags.push(t); });
+    renderTags();
     $('review').classList.remove('hidden');
   } catch (e) {
     setStatus('Network error: ' + e.message + ' — type a name to file manually.', 'err');
-    $('review').classList.remove('hidden'); renderNames([]); renderCats();
+    $('review').classList.remove('hidden'); renderNames([]); renderCats(); renderTags();
   } finally { nameBtn.disabled = false; $('sonnetBtn').disabled = false; }
 }
 nameBtn.onclick = () => askNames('haiku');
@@ -180,11 +209,14 @@ $('confirmBtn').onclick = async () => {
   fd.append('name', name); fd.append('category', category);
   fd.append('description', $('desc').value); fd.append('model', state.model);
   fd.append('price_jpy', $('price').value.replace(/[^0-9]/g, ''));
+  const tags = state.tags.concat(typedTags());
+  fd.append('tags', tags.join(','));   // confirm.php splits on commas/whitespace and dedupes
   $('confirmBtn').disabled = true; setStatus('Filing…');
   try {
     const r = await fetch('confirm.php', { method: 'POST', body: fd });
     const j = await r.json();
     if (!j.ok) { setStatus('Could not file: ' + (j.error||'error'), 'err'); $('confirmBtn').disabled = false; return; }
+    learnTags(tags);   // it is in the catalog now, so offer it as a chip for the next item
     $('resName').textContent = name;
     const t = $('resultThumbs'); t.innerHTML = '';
     (j.photos || []).forEach(p => {
@@ -197,13 +229,13 @@ $('confirmBtn').onclick = async () => {
 };
 
 $('nextBtn').onclick = () => {
-  state = { token: '', model: 'haiku', category: '' }; photos = []; views = [];
-  photo.value=''; $('name').value=''; $('catNew').value=''; $('desc').value=''; $('price').value=''; $('nameChips').innerHTML=''; $('resultThumbs').innerHTML='';
+  state = { token: '', model: 'haiku', category: '', tags: [] }; photos = []; views = [];
+  photo.value=''; $('name').value=''; $('catNew').value=''; $('tagNew').value=''; $('desc').value=''; $('price').value=''; $('nameChips').innerHTML=''; $('resultThumbs').innerHTML='';
   $('result').classList.add('hidden'); $('review').classList.add('hidden'); $('confirmBtn').disabled = false; setStatus('');
-  renderStrip(); window.scrollTo(0, 0);
+  renderStrip(); renderTags(); window.scrollTo(0, 0);
 };
 
-renderStrip(); renderCats();
+renderStrip(); renderCats(); renderTags();
 </script>
 </body>
 </html>
