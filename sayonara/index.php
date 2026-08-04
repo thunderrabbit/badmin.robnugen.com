@@ -150,7 +150,10 @@ function renderTags() {
     $('tagChips').appendChild(el);
   });
 }
-function typedTags() { return $('tagNew').value.split(/[,\s]+/).map(s => s.trim()).filter(Boolean); }
+// Split on commas only, hyphenating the spaces inside a tag: "Nine Inch Nails"
+// is one tag, not three. (confirm.php splits on whitespace too, so the spaces
+// have to go before the value is sent.)
+function typedTags() { return $('tagNew').value.split(',').map(s => s.trim().replace(/\s+/g, '-')).filter(Boolean); }
 // A tag invented mid-session becomes a chip right away — the page does not reload between items.
 function learnTags(tags) { (tags || []).forEach(t => { if (!TAGS.includes(t)) TAGS.push(t); }); }
 
