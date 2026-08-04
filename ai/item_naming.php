@@ -21,6 +21,7 @@
 const ITEMS_BASE_DIR  = "/home/thundergoblin/b.robnugen.com/home/tokyo/2026/p1/items";
 const ITEMS_STAGING   = ITEMS_BASE_DIR . "/.staging";
 const ITEMS_MANIFEST  = ITEMS_BASE_DIR . "/items_manifest.jsonl";
+const ITEMS_SIDECARS  = ITEMS_BASE_DIR . "/sidecars";   // catalog sidecars Lemur 13 scoops
 
 // ---- curated starter categories (UI also allows typing a new subdir) --------
 $ITEM_CATEGORIES = ["books", "clothes", "music", "magnets", "computer", "heavy"];
@@ -65,6 +66,43 @@ function recent_item_names(int $limit = 25, string $manifest = ITEMS_MANIFEST): 
         }
     }
     return $names;
+}
+
+/**
+ * The tags already in use across the catalog sidecars, most-used first
+ * (alphabetical within a tie, so chip order is stable between page loads).
+ *
+ * The sidecars are the source of record for item data, so the vocabulary lives
+ * there rather than in a list here: a tag Rob invents once becomes a chip and a
+ * prompt hint forever after, with no PHP to edit. Deliberately uncached — Rob
+ * also hand-edits sidecars on Lemur 13, and a stale cache would silently hide
+ * the very vocabulary this exists to surface. Reading ~30 small files costs a
+ * millisecond or two; if the catalog ever passes ~500 items, pull the "tags"
+ * line out of the first 400 bytes instead of decoding the long descriptions.
+ *
+ * Off-host (no archive) this returns [] and the UI falls back to free text.
+ */
+function item_tag_vocab(int $limit = 40, string $dir = ITEMS_SIDECARS): array
+{
+    if (!is_dir($dir)) {
+        return [];
+    }
+    $counts = [];
+    foreach (@glob("$dir/*.json") ?: [] as $file) {
+        $row = json_decode((string) @file_get_contents($file), true);
+        if (!is_array($row)) {
+            continue;
+        }
+        foreach ((array) ($row['tags'] ?? []) as $tag) {
+            $slug = slugify_item((string) $tag);
+            if ($slug !== '') {
+                $counts[$slug] = ($counts[$slug] ?? 0) + 1;
+            }
+        }
+    }
+    ksort($counts);    // alphabetical, then...
+    arsort($counts);   // ...most-used first (PHP 8 sorts are stable, so ties stay alphabetical)
+    return array_slice(array_keys($counts), 0, $limit);
 }
 
 /** 'haiku' | 'sonnet' -> Anthropic model id. Defaults to Haiku. */
@@ -188,6 +226,23 @@ function item_normalize_views($views, int $n): array
         while (isset($seen[$v])) { $v = "$base-$k"; $k++; }
         $seen[$v] = true;
         $out[$i]  = $v;
+    }
+    return $out;
+}
+
+/**
+ * Coerce loose tag input (model output, or Rob's typing) into filename-safe
+ * slugs: blanks and duplicates dropped, at most $max kept. Junk in -> [] out.
+ */
+function item_normalize_tags($tags, int $max = 4): array
+{
+    $out = [];
+    foreach (is_array($tags) ? $tags : [] as $tag) {
+        $slug = slugify_item((string) $tag);
+        if ($slug !== '' && !in_array($slug, $out, true)) {
+            $out[] = $slug;
+        }
+        if (count($out) >= $max) { break; }
     }
     return $out;
 }

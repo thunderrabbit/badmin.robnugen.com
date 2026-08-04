@@ -22,8 +22,6 @@ require_once "/home/thundergoblin/bulletproof_config.php";   // $bulletproof_pas
 require_once __DIR__ . "/../ai/item_naming.php";             // ITEMS_*, slugify_item, dir_slug_item
 require_once __DIR__ . "/../image_resize_lib.php";           // resize/thumb/url helpers
 
-const SAYONARA_SIDECARS = ITEMS_BASE_DIR . "/sidecars";
-
 function fail(string $msg): void
 {
     echo json_encode(['ok' => false, 'error' => $msg]);
@@ -125,7 +123,7 @@ foreach ($photos as $p) {
 @unlink($sidecar_stage);   // staged photos already moved
 
 // ---- write the catalog sidecar (the thing Lemur 13 scoops) ------------------
-if (!is_dir(SAYONARA_SIDECARS) && !@mkdir(SAYONARA_SIDECARS, 0755, true)) {
+if (!is_dir(ITEMS_SIDECARS) && !@mkdir(ITEMS_SIDECARS, 0755, true)) {
     fail('could not create sidecars dir');
 }
 $record = [
@@ -144,7 +142,7 @@ $record = [
     'description' => $description,
 ];
 $ok = @file_put_contents(
-    SAYONARA_SIDECARS . "/$slug.json",
+    ITEMS_SIDECARS . "/$slug.json",
     json_encode($record, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE) . "\n"
 );
 if ($ok === false) { fail('filed photos but could not write the catalog sidecar'); }
