@@ -10,9 +10,11 @@
  *
  *   POST: password, token, name, category, tags?, description?, model?
  *
- * Sidecar: ITEMS_BASE_DIR/sidecars/<slug>.json  (slug, name, category, description,
+ * Sidecar: ITEMS_SIDECARS/<slug>.json  (slug, name, category, tags[], description,
  *          images[] = _1000 URLs, thumb, price_jpy=null, quantity, sold=false, …).
  * badmin holds no mg/Stripe secret; price/event/tier are filled later on Lemur 13.
+ * Re-filing an existing slug REWRITES the whole sidecar: the form wins, nothing
+ * is merged back from what Lemur 13 may have edited in the meantime.
  */
 
 date_default_timezone_set("Asia/Tokyo");
@@ -21,8 +23,6 @@ header('Content-Type: application/json');
 require_once "/home/thundergoblin/bulletproof_config.php";   // $bulletproof_password_hash
 require_once __DIR__ . "/../ai/item_naming.php";             // ITEMS_*, slugify_item, dir_slug_item
 require_once __DIR__ . "/../image_resize_lib.php";           // resize/thumb/url helpers
-
-const SAYONARA_SIDECARS = ITEMS_BASE_DIR . "/sidecars";
 
 function fail(string $msg): void
 {
@@ -44,10 +44,11 @@ if ($slug === '') { fail('a name is required'); }
 $category = slugify_item($_POST['category'] ?? '');
 if ($category === '') { $category = 'other'; }
 
+// tags: free comma/space separated (chips + typed) -> deduped array of slugs
 $tags = [];
 foreach (preg_split('/[,\s]+/', $_POST['tags'] ?? '', -1, PREG_SPLIT_NO_EMPTY) as $t) {
     $ts = slugify_item($t);
-    if ($ts !== '') { $tags[] = $ts; }
+    if ($ts !== '' && !in_array($ts, $tags, true)) { $tags[] = $ts; }
 }
 
 $description = trim($_POST['description'] ?? '');
@@ -125,13 +126,14 @@ foreach ($photos as $p) {
 @unlink($sidecar_stage);   // staged photos already moved
 
 // ---- write the catalog sidecar (the thing Lemur 13 scoops) ------------------
-if (!is_dir(SAYONARA_SIDECARS) && !@mkdir(SAYONARA_SIDECARS, 0755, true)) {
+if (!is_dir(ITEMS_SIDECARS) && !@mkdir(ITEMS_SIDECARS, 0755, true)) {
     fail('could not create sidecars dir');
 }
 $record = [
     'slug'        => $slug,
     'name'        => $name,
     'category'    => $category,
+    'tags'        => $tags,
     'tier'        => '',
     'mechanism'   => '',
     'event'       => '',
@@ -144,7 +146,7 @@ $record = [
     'description' => $description,
 ];
 $ok = @file_put_contents(
-    SAYONARA_SIDECARS . "/$slug.json",
+    ITEMS_SIDECARS . "/$slug.json",
     json_encode($record, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE) . "\n"
 );
 if ($ok === false) { fail('filed photos but could not write the catalog sidecar'); }

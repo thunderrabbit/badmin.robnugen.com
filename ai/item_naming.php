@@ -21,6 +21,7 @@
 const ITEMS_BASE_DIR  = "/home/thundergoblin/b.robnugen.com/home/tokyo/2026/p1/items";
 const ITEMS_STAGING   = ITEMS_BASE_DIR . "/.staging";
 const ITEMS_MANIFEST  = ITEMS_BASE_DIR . "/items_manifest.jsonl";
+const ITEMS_SIDECARS  = ITEMS_BASE_DIR . "/sidecars";   // catalog sidecars Lemur 13 scoops
 
 // ---- curated starter categories (UI also allows typing a new subdir) --------
 $ITEM_CATEGORIES = ["books", "clothes", "music", "magnets", "computer", "heavy"];
@@ -65,6 +66,43 @@ function recent_item_names(int $limit = 25, string $manifest = ITEMS_MANIFEST): 
         }
     }
     return $names;
+}
+
+/**
+ * The tags already in use across the catalog sidecars, most-used first
+ * (alphabetical within a tie, so chip order is stable between page loads).
+ *
+ * The sidecars are the source of record for item data, so the vocabulary lives
+ * there rather than in a list here: a tag Rob invents once becomes a chip and a
+ * prompt hint forever after, with no PHP to edit. Deliberately uncached — Rob
+ * also hand-edits sidecars on Lemur 13, and a stale cache would silently hide
+ * the very vocabulary this exists to surface. Reading ~30 small files costs a
+ * millisecond or two; if the catalog ever passes ~500 items, pull the "tags"
+ * line out of the first 400 bytes instead of decoding the long descriptions.
+ *
+ * Off-host (no archive) this returns [] and the UI falls back to free text.
+ */
+function item_tag_vocab(int $limit = 40, string $dir = ITEMS_SIDECARS): array
+{
+    if (!is_dir($dir)) {
+        return [];
+    }
+    $counts = [];
+    foreach (@glob("$dir/*.json") ?: [] as $file) {
+        $row = json_decode((string) @file_get_contents($file), true);
+        if (!is_array($row)) {
+            continue;
+        }
+        foreach ((array) ($row['tags'] ?? []) as $tag) {
+            $slug = slugify_item((string) $tag);
+            if ($slug !== '') {
+                $counts[$slug] = ($counts[$slug] ?? 0) + 1;
+            }
+        }
+    }
+    ksort($counts);    // alphabetical, then...
+    arsort($counts);   // ...most-used first (PHP 8 sorts are stable, so ties stay alphabetical)
+    return array_slice(array_keys($counts), 0, $limit);
 }
 
 /** 'haiku' | 'sonnet' -> Anthropic model id. Defaults to Haiku. */
@@ -193,32 +231,50 @@ function item_normalize_views($views, int $n): array
 }
 
 /**
+ * Coerce loose tag input (model output, or Rob's typing) into filename-safe
+ * slugs: blanks and duplicates dropped, at most $max kept. Junk in -> [] out.
+ */
+function item_normalize_tags($tags, int $max = 4): array
+{
+    $out = [];
+    foreach (is_array($tags) ? $tags : [] as $tag) {
+        $slug = slugify_item((string) $tag);
+        if ($slug !== '' && !in_array($slug, $out, true)) {
+            $out[] = $slug;
+        }
+        if (count($out) >= $max) { break; }
+    }
+    return $out;
+}
+
+/**
  * Single-photo convenience wrapper around claude_name_images().
  *
- * @return array { ok, names[], category, description, model, error, raw }
+ * @return array { ok, names[], category, tags[], description, model, error, raw }
  *  On any failure ok=false and the UI falls back to a manual name field —
  *  AI is assistive, never blocking.
  */
-function claude_name_image(string $image_path, string $model, array $recent_names, string $api_key, array $categories): array
+function claude_name_image(string $image_path, string $model, array $recent_names, string $api_key, array $categories, array $tag_vocab = []): array
 {
-    $out = claude_name_images([$image_path], $model, $recent_names, $api_key, $categories);
+    $out = claude_name_images([$image_path], $model, $recent_names, $api_key, $categories, $tag_vocab);
     unset($out['views']);   // single-photo callers don't use per-photo angles
     return $out;
 }
 
 /**
  * Ask Claude to look at all photos of ONE object and propose 3 names + a category
- * + a description + a per-photo "view" (angle) word, aligned to image order.
+ * + tags + a description + a per-photo "view" (angle) word, aligned to image order.
  *
  * @param string[] $image_paths the staged photos of a single item, in order
+ * @param string[] $tag_vocab   tags already in use, to bias against sprawl (optional)
  * @return array {
- *   ok: bool, names: string[], category: string, description: string,
+ *   ok: bool, names: string[], category: string, tags: string[], description: string,
  *   views: string[] (one per image), model: string, error: string, raw: string
  * }
  */
-function claude_name_images(array $image_paths, string $model, array $recent_names, string $api_key, array $categories): array
+function claude_name_images(array $image_paths, string $model, array $recent_names, string $api_key, array $categories, array $tag_vocab = []): array
 {
-    $out = ['ok' => false, 'names' => [], 'category' => '', 'description' => '',
+    $out = ['ok' => false, 'names' => [], 'category' => '', 'tags' => [], 'description' => '',
             'price_jpy' => null,
             'views' => [], 'model' => item_model_id($model), 'error' => '', 'raw' => ''];
 
@@ -246,6 +302,14 @@ function claude_name_images(array $image_paths, string $model, array $recent_nam
         : "  \"views\": [exactly $n short lowercase angle words, ONE PER PHOTO IN ORDER, " .
           "each a single word like \"front\", \"back\", \"spine\", \"label\", \"detail\"]\n";
 
+    // Bias toward tags already in use so the catalog filter does not sprawl
+    // into near-synonyms (nin vs nine-inch-nails vs nine_inch_nails).
+    $tags_key = $tag_vocab
+        ? "  \"tags\": [2-4 lowercase hyphenated tags for browsing the catalog. STRONGLY PREFER " .
+          "tags from this list already in use: " . implode(', ', $tag_vocab) . ". Invent a new " .
+          "hyphenated tag only if nothing in the list fits the object],\n"
+        : "  \"tags\": [2-4 short lowercase hyphenated tags for browsing the catalog],\n";
+
     $prompt =
         $intro . $examples .
         "Return STRICT JSON only (no prose, no code fence) with exactly these keys:\n" .
@@ -254,6 +318,7 @@ function claude_name_images(array $image_paths, string $model, array $recent_nam
         "specific not generic, e.g. \"blue denim jacket\" not \"jacket\"],\n" .
         "  \"category\": one of [$cat_list] that best fits, or \"other\" if none fit " .
         "(\"heavy\" = large items hard to ship: furniture, appliances, safe),\n" .
+        $tags_key .
         "  \"description\": one factual sentence describing the object,\n" .
         "  \"price_jpy\": estimated typical SECOND-HAND price in Japan in whole yen " .
         "(integer only, no commas or symbols) — what a used one realistically sells for " .
@@ -277,6 +342,7 @@ function claude_name_images(array $image_paths, string $model, array $recent_nam
 
     $out['names']       = array_values(array_filter(array_map('strval', $parsed['names'])));
     $out['category']    = isset($parsed['category']) ? strtolower(trim((string) $parsed['category'])) : '';
+    $out['tags']        = item_normalize_tags($parsed['tags'] ?? []);
     $out['description'] = isset($parsed['description']) ? trim((string) $parsed['description']) : '';
     if (array_key_exists('price_jpy', $parsed)) {
         $p = $parsed['price_jpy'];
