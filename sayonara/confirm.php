@@ -10,9 +10,11 @@
  *
  *   POST: password, token, name, category, tags?, description?, model?
  *
- * Sidecar: ITEMS_BASE_DIR/sidecars/<slug>.json  (slug, name, category, description,
+ * Sidecar: ITEMS_SIDECARS/<slug>.json  (slug, name, category, tags[], description,
  *          images[] = _1000 URLs, thumb, price_jpy=null, quantity, sold=false, …).
  * badmin holds no mg/Stripe secret; price/event/tier are filled later on Lemur 13.
+ * Re-filing an existing slug REWRITES the whole sidecar: the form wins, nothing
+ * is merged back from what Lemur 13 may have edited in the meantime.
  */
 
 date_default_timezone_set("Asia/Tokyo");
@@ -42,10 +44,11 @@ if ($slug === '') { fail('a name is required'); }
 $category = slugify_item($_POST['category'] ?? '');
 if ($category === '') { $category = 'other'; }
 
+// tags: free comma/space separated (chips + typed) -> deduped array of slugs
 $tags = [];
 foreach (preg_split('/[,\s]+/', $_POST['tags'] ?? '', -1, PREG_SPLIT_NO_EMPTY) as $t) {
     $ts = slugify_item($t);
-    if ($ts !== '') { $tags[] = $ts; }
+    if ($ts !== '' && !in_array($ts, $tags, true)) { $tags[] = $ts; }
 }
 
 $description = trim($_POST['description'] ?? '');
@@ -130,6 +133,7 @@ $record = [
     'slug'        => $slug,
     'name'        => $name,
     'category'    => $category,
+    'tags'        => $tags,
     'tier'        => '',
     'mechanism'   => '',
     'event'       => '',
