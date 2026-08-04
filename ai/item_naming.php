@@ -250,30 +250,31 @@ function item_normalize_tags($tags, int $max = 4): array
 /**
  * Single-photo convenience wrapper around claude_name_images().
  *
- * @return array { ok, names[], category, description, model, error, raw }
+ * @return array { ok, names[], category, tags[], description, model, error, raw }
  *  On any failure ok=false and the UI falls back to a manual name field —
  *  AI is assistive, never blocking.
  */
-function claude_name_image(string $image_path, string $model, array $recent_names, string $api_key, array $categories): array
+function claude_name_image(string $image_path, string $model, array $recent_names, string $api_key, array $categories, array $tag_vocab = []): array
 {
-    $out = claude_name_images([$image_path], $model, $recent_names, $api_key, $categories);
+    $out = claude_name_images([$image_path], $model, $recent_names, $api_key, $categories, $tag_vocab);
     unset($out['views']);   // single-photo callers don't use per-photo angles
     return $out;
 }
 
 /**
  * Ask Claude to look at all photos of ONE object and propose 3 names + a category
- * + a description + a per-photo "view" (angle) word, aligned to image order.
+ * + tags + a description + a per-photo "view" (angle) word, aligned to image order.
  *
  * @param string[] $image_paths the staged photos of a single item, in order
+ * @param string[] $tag_vocab   tags already in use, to bias against sprawl (optional)
  * @return array {
- *   ok: bool, names: string[], category: string, description: string,
+ *   ok: bool, names: string[], category: string, tags: string[], description: string,
  *   views: string[] (one per image), model: string, error: string, raw: string
  * }
  */
-function claude_name_images(array $image_paths, string $model, array $recent_names, string $api_key, array $categories): array
+function claude_name_images(array $image_paths, string $model, array $recent_names, string $api_key, array $categories, array $tag_vocab = []): array
 {
-    $out = ['ok' => false, 'names' => [], 'category' => '', 'description' => '',
+    $out = ['ok' => false, 'names' => [], 'category' => '', 'tags' => [], 'description' => '',
             'price_jpy' => null,
             'views' => [], 'model' => item_model_id($model), 'error' => '', 'raw' => ''];
 
@@ -301,6 +302,14 @@ function claude_name_images(array $image_paths, string $model, array $recent_nam
         : "  \"views\": [exactly $n short lowercase angle words, ONE PER PHOTO IN ORDER, " .
           "each a single word like \"front\", \"back\", \"spine\", \"label\", \"detail\"]\n";
 
+    // Bias toward tags already in use so the catalog filter does not sprawl
+    // into near-synonyms (nin vs nine-inch-nails vs nine_inch_nails).
+    $tags_key = $tag_vocab
+        ? "  \"tags\": [2-4 lowercase hyphenated tags for browsing the catalog. STRONGLY PREFER " .
+          "tags from this list already in use: " . implode(', ', $tag_vocab) . ". Invent a new " .
+          "hyphenated tag only if nothing in the list fits the object],\n"
+        : "  \"tags\": [2-4 short lowercase hyphenated tags for browsing the catalog],\n";
+
     $prompt =
         $intro . $examples .
         "Return STRICT JSON only (no prose, no code fence) with exactly these keys:\n" .
@@ -309,6 +318,7 @@ function claude_name_images(array $image_paths, string $model, array $recent_nam
         "specific not generic, e.g. \"blue denim jacket\" not \"jacket\"],\n" .
         "  \"category\": one of [$cat_list] that best fits, or \"other\" if none fit " .
         "(\"heavy\" = large items hard to ship: furniture, appliances, safe),\n" .
+        $tags_key .
         "  \"description\": one factual sentence describing the object,\n" .
         "  \"price_jpy\": estimated typical SECOND-HAND price in Japan in whole yen " .
         "(integer only, no commas or symbols) — what a used one realistically sells for " .
@@ -332,6 +342,7 @@ function claude_name_images(array $image_paths, string $model, array $recent_nam
 
     $out['names']       = array_values(array_filter(array_map('strval', $parsed['names'])));
     $out['category']    = isset($parsed['category']) ? strtolower(trim((string) $parsed['category'])) : '';
+    $out['tags']        = item_normalize_tags($parsed['tags'] ?? []);
     $out['description'] = isset($parsed['description']) ? trim((string) $parsed['description']) : '';
     if (array_key_exists('price_jpy', $parsed)) {
         $p = $parsed['price_jpy'];
