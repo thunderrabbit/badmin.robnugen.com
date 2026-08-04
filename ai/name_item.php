@@ -1,7 +1,8 @@
 <?php
 /**
  * name_item.php — stage one or more photos of a single item and ask Claude for
- * 3 names + a category + a description + a per-photo "view" angle. Always JSON.
+ * 3 names + a category + tags + a description + a per-photo "view" angle.
+ * Always JSON.
  *
  * Stage 1 of the item flow. The token identifies the item GROUP; every photo of
  * that item is staged under it as `<token>-<i>.<ext>` with a `<token>.json`
@@ -10,7 +11,7 @@
  *  First call (new photos):  POST password, model?, photo[]=<files>
  *                            -> new token, stages each photo, names them all,
  *                               returns {ok, token, count, names[3], category,
- *                                        description, views[count], model}
+ *                                        tags, description, views[count], model}
  *
  *  Add another:              POST password, token=<token>, photo[]=<files>
  *                            -> appends to the same group, re-names all photos.
@@ -126,7 +127,8 @@ $result = claude_name_images(
     $model,
     recent_item_names(),
     $anthropic_api_key ?? '',
-    $ITEM_CATEGORIES
+    $ITEM_CATEGORIES,
+    item_tag_vocab()
 );
 
 // persist the suggested views back into the sidecar so confirm_item.php is authoritative
@@ -142,6 +144,7 @@ echo json_encode([
     'count'       => count($photos),
     'names'       => $result['names'],
     'category'    => $result['category'],
+    'tags'        => $result['tags'],
     'description' => $result['description'],
     'price_jpy'   => $result['price_jpy'] ?? null,
     'views'       => $result['views'],
