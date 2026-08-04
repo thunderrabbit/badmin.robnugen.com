@@ -7,6 +7,8 @@
  *  - slugify_item()      : human text -> lowercase hyphen slug (file convention)
  *  - dir_slug_item()     : slug -> underscore form (multi-photo folder convention)
  *  - recent_item_names() : last N chosen names from the manifest (style examples)
+ *  - item_tag_vocab()    : tags already in use across the catalog sidecars
+ *  - item_normalize_tags(): loose tag input -> deduped list of slugs
  *  - item_model_id()     : 'haiku'|'sonnet' -> API model id
  *  - claude_name_image()  : single-photo vision call -> {names:[3], category, description}
  *  - claude_name_images() : multi-photo vision call -> + per-photo views[]
