@@ -4,7 +4,15 @@
  *
  * Stages one or more photos of a SINGLE financial document (a receipt, a paid
  * bill, or a tax doc) to the NON-PUBLIC secure_bin staging dir, then asks Claude
- * for 3 filename suggestions + a description + a per-photo "view". Always JSON.
+ * for 3 filename suggestions + a description + a per-photo "view" + the currency
+ * on the document. Always JSON.
+ *
+ * Currency comes back deliberately UNRESOLVED, as three fields, because the page
+ * needs to know whether they disagree — that is the whole signal, and collapsing
+ * them here would throw it away:
+ *   read_currency   — what Claude saw, '' if it could not tell
+ *   unsupported     — a real 3-letter code the cash board does not carry (THB, EUR)
+ *   active_currency — what the cash board says, '' if nothing is pinned
  *
  * Differences from ai/name_item.php:
  *   - stages under SECURE_BIN_STAGING (outside the web root), never the public tree
@@ -58,12 +66,14 @@ function uploaded_photos(): array
  * Reuses item_anthropic_vision()/item_parse_json()/item_normalize_views() verbatim.
  *
  * @param string[] $image_paths staged photos of a single document, in order
- * @return array { ok, names[], description, views[], model, error, raw }
+ * @param string   $active_currency the 📍active code, given to Claude as context to
+ *                 check the document against ('' when nothing is pinned)
+ * @return array { ok, names[], description, views[], currency, unsupported, model, error, raw }
  */
-function claude_name_secure_docs(array $image_paths, string $model, string $bucket, array $recent_names, string $api_key): array
+function claude_name_secure_docs(array $image_paths, string $model, string $bucket, string $active_currency, array $recent_names, string $api_key): array
 {
-    $out = ['ok' => false, 'names' => [], 'description' => '', 'views' => [],
-            'model' => item_model_id($model), 'error' => '', 'raw' => ''];
+    $out = ['ok' => false, 'names' => [], 'description' => '', 'views' => [], 'currency' => '',
+            'unsupported' => '', 'model' => item_model_id($model), 'error' => '', 'raw' => ''];
 
     $image_paths = array_values($image_paths);
     $n = count($image_paths);
@@ -100,14 +110,27 @@ function claude_name_secure_docs(array $image_paths, string $model, string $buck
         : "  \"views\": [exactly $n short lowercase words, ONE PER PHOTO IN ORDER, " .
           "each a single word like \"front\", \"back\", \"page1\", \"page2\", \"detail\"]\n";
 
+    // The 📍active currency is a strong prior — Rob is standing in that country — but it is
+    // given as context to CHECK against, not an answer to echo back. A stale receipt he is
+    // catching up on genuinely differs, and the page surfaces that disagreement to him.
+    $currency_hint = $active_currency !== ''
+        ? "Rob is currently in the country that uses $active_currency, so that is the expected " .
+          "currency. Say so if the document disagrees — he also files older receipts from " .
+          "elsewhere, and a real mismatch matters more than a tidy answer.\n\n"
+        : "";
+
     $prompt =
-        $intro . $examples .
+        $intro . $examples . $currency_hint .
         "Read any vendor, date, and total visible. Return STRICT JSON only (no prose, no code fence) " .
         "with exactly these keys:\n" .
         "{\n" .
         "  \"names\": [3 short human-readable names, 2-5 words each, specific not generic; " .
         "lowercase is fine; include the vendor and, when clearly legible, the amount or period],\n" .
         "  \"description\": one factual sentence (vendor, what, total + currency, date if visible),\n" .
+        "  \"currency\": the ISO 4217 code for the money on this document, e.g. \"JPY\", \"AUD\", " .
+        "\"USD\". Use \"\" if you genuinely cannot tell. A bare \"$\" is NOT enough — it is shared " .
+        "by AUD, USD and NZD — so decide from the language, the vendor, the address, or the tax " .
+        "wording (GST vs consumption tax). Return \"\" rather than guessing,\n" .
         $views_key .
         "}";
 
@@ -127,6 +150,21 @@ function claude_name_secure_docs(array $image_paths, string $model, string $buck
     $out['names']       = array_values(array_filter(array_map('strval', $parsed['names'])));
     $out['description'] = isset($parsed['description']) ? trim((string) $parsed['description']) : '';
     $out['views']       = item_normalize_views($parsed['views'] ?? [], $n);
+
+    // is_string() guards a model returning a number or an object.
+    $read = isset($parsed['currency']) && is_string($parsed['currency'])
+        ? strtoupper(trim($parsed['currency']))
+        : '';
+    $out['currency'] = cash_currency_ok($read) ? $read : '';
+
+    // "Read a code the cash board doesn't carry" is NOT the same as "couldn't tell", and
+    // collapsing them is how a Bangkok receipt files itself as AUD in silence. Only a
+    // well-formed 3-letter code counts: a bare "$" or the word "dollars" really is
+    // could-not-tell. The page surfaces this so Rob can add the currency to the board.
+    $out['unsupported'] = ($out['currency'] === '' && preg_match('/^[A-Z]{3}$/', $read))
+        ? $read
+        : '';
+
     $out['ok']          = count($out['names']) > 0;
     return $out;
 }
@@ -218,11 +256,18 @@ if (!$photos) {
 }
 $paths = array_map(fn($p) => SECURE_BIN_STAGING . "/" . $p['file'], $photos);
 
+// The 📍active currency (cash board) is context for the prompt and the fallback the page
+// uses when Claude cannot read one. '' = nothing pinned; the page then makes Rob choose.
+$active_currency = cash_active_currency();
+
 $result = claude_name_secure_docs(
     $paths,
     $model,
     $bucket,
-    recent_item_names(25, SECURE_BIN_MANIFEST),
+    $active_currency,
+    // style examples from THIS currency's ledger, so Japanese vendor names don't prime
+    // Claude while it reads an Australian receipt. '' (nothing pinned) yields no examples.
+    recent_item_names(25, secure_manifest_path($active_currency) ?? ''),
     $anthropic_api_key ?? ''
 );
 
@@ -242,6 +287,9 @@ echo json_encode([
     'names'       => $result['names'],
     'description' => $result['description'],
     'views'       => $result['views'],
+    'read_currency'   => $result['currency'],      // what Claude saw; '' = could not tell
+    'unsupported'     => $result['unsupported'],   // a real code the cash board lacks, e.g. THB
+    'active_currency' => $active_currency,         // what the cash board says; '' = none pinned
     'model'       => $model,
     'error'       => $result['error'],
 ]);

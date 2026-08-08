@@ -9,7 +9,9 @@
  *   - the manifest lives INSIDE secure_bin, not in the public tree
  *   - the response carries no URL/markdown (the files are not web-served, by design)
  *
- *  POST: password, token, name, description?  (bucket comes from the staged sidecar)
+ *  POST: password, token, name, currency, description?
+ *        (bucket, account_tag and category come from the staged sidecar; currency does
+ *         not — it is settled after staging, once Claude has read the photo.)
  *
  * Single photo  -> filed FLAT in the bucket dir:
  *    secure_bin/<bucket>/2026-jun-19-<slug>.jpg
@@ -46,6 +48,18 @@ if ($slug === '') {
 
 $description = trim($_POST['description'] ?? '');
 $name        = trim($_POST['name'] ?? '');
+
+// Currency arrives from the page rather than the staging sidecar, because it is settled
+// AFTER staging: Claude reads it from the photo and Rob confirms or corrects it.
+//
+// This is the ONE field here that fails hard. account_tag and category both degrade to a
+// safe default when they don't validate, which is right for a hint — but a record with no
+// currency is the exact ambiguity this field exists to remove, and a wrong one lands real
+// money in the wrong budget without ever looking wrong. Refuse instead.
+$currency = strtoupper(trim($_POST['currency'] ?? ''));
+if (!cash_currency_ok($currency)) {
+    fail('a valid currency is required');
+}
 
 // ---- load the staged photo group from its sidecar ---------------------------
 $allowed_ext = ['jpg', 'jpeg', 'png', 'gif', 'webp'];
@@ -102,6 +116,9 @@ if ($multi) {
 
 $date_prefix = strtolower(date("Y-M-d"));            // 2026-jun-19
 
+// $currency passed cash_currency_ok() above, so this is never null.
+$manifest = secure_manifest_path($currency);
+
 // ---- file each photo (atomic rename, original only) -------------------------
 $filed = [];
 
@@ -134,6 +151,7 @@ foreach ($photos as $p) {
     $record = [
         'item'        => $slug,
         'file'        => $rel,
+        'currency'    => $currency,
         'bucket'      => $bucket,
         'account_tag' => $account_tag,
         'category'    => $category,
@@ -145,8 +163,8 @@ foreach ($photos as $p) {
     ];
     $json = json_encode($record, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
 
-    // manifest line, INSIDE secure_bin (never the public tree)
-    @file_put_contents(SECURE_BIN_MANIFEST, $json . "\n", FILE_APPEND | LOCK_EX);
+    // manifest line, INSIDE secure_bin (never the public tree), in this currency's ledger
+    @file_put_contents($manifest, $json . "\n", FILE_APPEND | LOCK_EX);
     // per-image sidecar next to the filed image, e.g. 2026-jun-19-foo.jpg.json
     @file_put_contents($final . ".json", $json);
 

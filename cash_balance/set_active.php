@@ -1,13 +1,21 @@
 <?php
 /**
- * cash_balance/set_active.php — toggle a currency's 📍active flag.
+ * cash_balance/set_active.php — set which single currency is 📍active.
  *
- * "Active" = a currency you're currently using (the country you're in). Only active
- * currencies get a stale nag on the board; the rest show neutral age and never nag.
- * State lives in secure_bin/cash/cash_active.json — REWRITTEN (not appended), and it
- * rides the Lemur mirror alongside the snapshot ledgers.
+ * "Active" = the currency you're currently using (the country you're in). Only the
+ * active currency gets a stale nag on the board; the rest show neutral age and never
+ * nag. State lives in secure_bin/cash/cash_active.json — REWRITTEN (not appended),
+ * and it rides the Lemur mirror alongside the snapshot ledgers.
  *
- *  POST: password, currency, active ("1" = mark active, anything else = unmark)
+ * SINGLE-SELECT: at most one currency is active, because Rob is in one country at a
+ * time. /ai_secure reads it to stamp each scanned receipt with a currency and to pick
+ * the account + category chips, all of which need one unambiguous answer. Marking a
+ * currency active therefore REPLACES whatever was active before.
+ *
+ * The stored shape is unchanged — {"active":[...],"updated":"..."} — so existing
+ * readers keep working; the list simply never holds more than one entry now.
+ *
+ *  POST: password, currency, active ("1" = make this the active one, anything else = unmark)
  */
 
 date_default_timezone_set("Asia/Tokyo");
@@ -36,16 +44,17 @@ if (!is_dir(CASH_DIR) && !@mkdir(CASH_DIR, 0700, true)) {
     fail('could not create cash dir');
 }
 
-// load current active set (defensive: tolerate a missing / malformed file, drop stale codes)
-$cur    = is_file(CASH_ACTIVE_FILE)
-    ? (json_decode((string) file_get_contents(CASH_ACTIVE_FILE), true) ?: [])
-    : [];
-$active = array_values(array_filter($cur['active'] ?? [], 'cash_currency_ok'));
+// cash_active_currency() does the defensive read (missing / malformed file, stale codes,
+// pre-single-select state listing several — first valid entry wins).
+$current = cash_active_currency();
 
-// remove this currency, then add it back iff we want it active (idempotent toggle)
-$active = array_values(array_diff($active, [$currency]));
+// Marking replaces whatever was active; unmarking clears ONLY this currency. Unmarking
+// must not be a blanket reset: the client sends active=0 for the pin it tapped, and a
+// stale or hand-made request naming a different currency should never unmark the real one.
 if ($want_active) {
-    $active[] = $currency;
+    $active = [$currency];
+} else {
+    $active = ($current === '' || $current === $currency) ? [] : [$current];
 }
 
 $out = json_encode(

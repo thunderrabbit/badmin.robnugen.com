@@ -19,23 +19,73 @@
 
 const SECURE_BIN_ROOT     = "/home/thundergoblin/secure_bin";
 const SECURE_BIN_STAGING  = SECURE_BIN_ROOT . "/.staging";
-const SECURE_BIN_MANIFEST = SECURE_BIN_ROOT . "/secure_manifest.jsonl";
+
+/**
+ * Whitelisted absolute path to one currency's append-only manifest, or null.
+ *
+ * One manifest PER CURRENCY, not one shared file, so the ledgers stay separable — and
+ * because name_item.php feeds the last 25 names from here to Claude as Rob's naming
+ * style. Against a shared file a Coles receipt in Adelaide would be read while Claude is
+ * primed on "lawson snacks" and "jr east suica charge".
+ *
+ * Mirror of cash_snapshot_path(): the code comes off the whitelist and the filename is
+ * fixed-format, so no client input ever reaches the path. (Defined here, beside the
+ * other paths; cash_currency_ok() lives further down but PHP hoists both.)
+ */
+function secure_manifest_path(string $cur): ?string
+{
+    return cash_currency_ok($cur) ? SECURE_BIN_ROOT . "/secure_manifest_{$cur}.jsonl" : null;
+}
 
 /** The only destinations ai_secure will ever write to. Keys are the routing buckets. */
 const SECURE_BUCKETS = ['receipts', 'bills_paid', 'taxes_filed', 'statements'];
 
-/**
- * Accounting tag: which account/source paid for the captured document, so a future
- * Lemur-13 reconciler can scope-match it to the right statement (badmin #281).
- * Chip order matters — index.php renders the row in this order; 'unknown' is the
- * first chip and the default. Never trust a client value; validate via account_tag_ok().
+/* ---- accounting tag (which account/source paid) -----------------------------
+ * So a future Lemur-13 reconciler can scope-match a document to the right statement
+ * (badmin #281). Split like SECURE_CATEGORIES_*: accounts are mostly country-bound, and
+ * showing paypay in Adelaide is the same noise as showing an Australian bank in Tokyo.
+ *
+ *   ACCOUNT_TAGS_SHARED       — usable anywhere; 'unknown' is first and is the default.
+ *   ACCOUNT_TAGS_BY_CURRENCY  — that country's own accounts, keyed by currency code.
+ *
+ * Chip order matters: index.php renders SHARED first, then the active currency's own.
+ * Never trust a client value; validate via account_tag_ok().
  */
-const ACCOUNT_TAGS = ['unknown', 'cash', 'wise', 'mufg-bank', 'google-wallet', 'paypay', 'paypal', 'mufg-card'];
+const ACCOUNT_TAGS_SHARED = ['unknown', 'cash', 'wise', 'paypal'];
 
-/** True iff $t is an allowed accounting tag. */
+const ACCOUNT_TAGS_BY_CURRENCY = [
+    'JPY' => ['mufg-bank', 'mufg-card', 'paypay', 'google-wallet'],
+    'AUD' => [ /* TODO Rob: fill in once the Australian accounts are open */ ],
+];
+
+/** Chips to show for the 📍active currency: shared tags first, then that country's own. */
+function account_tags_for(string $cur): array
+{
+    return array_values(array_unique(array_merge(
+        ACCOUNT_TAGS_SHARED,
+        ACCOUNT_TAGS_BY_CURRENCY[$cur] ?? []
+    )));
+}
+
+/** Every tag any currency allows — the validation vocabulary, not a chip row. */
+function account_tags_all(): array
+{
+    $out = ACCOUNT_TAGS_SHARED;
+    foreach (ACCOUNT_TAGS_BY_CURRENCY as $tags) {
+        $out = array_merge($out, $tags);
+    }
+    return array_values(array_unique($out));
+}
+
+/**
+ * True iff $t is an allowed accounting tag, in ANY currency — deliberately wider than
+ * the chips on screen. A JPY receipt filed while AUD is active legitimately carries
+ * 'paypay', and validating against the active currency alone would silently downgrade
+ * it to 'unknown'.
+ */
 function account_tag_ok(string $t): bool
 {
-    return in_array($t, ACCOUNT_TAGS, true);
+    return in_array($t, account_tags_all(), true);
 }
 
 /**
@@ -58,8 +108,9 @@ function secure_bucket_dir(string $bucket): ?string
  *
  *   SECURE_CATEGORIES_ALL    — full searchable vocabulary (one shared list).
  *   SECURE_CATEGORIES_COMMON — per-currency quick chips, keyed by cash-board
- *     currency code (CASH_CURRENCIES). cash_active.json picks which show; when
- *     several currencies are active, index.php UNIONS them (deduped).
+ *     currency code (CASH_CURRENCIES). The single 📍active currency in
+ *     cash_active.json picks exactly one list — no union, so a tapped chip
+ *     always names one country's budget line.
  *
  * index.php shows a shortened display (the part after the group prefix) but
  * stores/validates the WHOLE string. Every COMMON entry is also in ALL so a tapped
@@ -156,21 +207,21 @@ function secure_categories(): array
 }
 
 /**
- * Quick-chip categories for the given active currency codes (from cash_active.json),
- * unioned in COMMON order with duplicates removed. Unknown/inactive currencies add nothing.
+ * Quick-chip categories for the 📍active currency. An unknown code or '' (nothing
+ * pinned) yields none, and the page falls back to its search box over the full
+ * vocabulary — an empty chip row is a fine outcome, a wrong one is not.
+ *
+ * No union and no dedup: with one active currency there is exactly one list, which is
+ * the point. 'Needs: 🛒 Groceries' appears under both JPY and AUD, so a merged row
+ * could never say which country a tapped chip meant.
+ *
+ * Defensive normalization because secure_categories() may be answering from
+ * secure_categories.json, where 'common' is whatever that file happens to hold.
  */
-function secure_common_categories(array $active): array
+function secure_common_categories(string $cur): array
 {
-    $common = secure_categories()['common'];
-    $out = [];
-    foreach ($active as $cur) {
-        foreach ($common[$cur] ?? [] as $c) {
-            if (!in_array($c, $out, true)) {
-                $out[] = $c;
-            }
-        }
-    }
-    return $out;
+    $chips = secure_categories()['common'][$cur] ?? [];
+    return is_array($chips) ? array_values(array_filter(array_map('strval', $chips))) : [];
 }
 
 /** True iff $c is an allowed category. Empty is NOT ok — callers treat '' as "no category". */
@@ -209,6 +260,32 @@ const CASH_CURRENCIES = [
 function cash_currency_ok(string $cur): bool
 {
     return array_key_exists($cur, CASH_CURRENCIES);
+}
+
+/**
+ * The single 📍active currency code, or '' when none is set.
+ *
+ * Several pages read cash_active.json — the cash board, /ai_secure, name_item.php — and
+ * every one of them needs the same normalization: tolerate a missing or hand-edited
+ * file, drop codes no longer on the whitelist, and take the FIRST valid entry (state
+ * written before single-select may still list several). Centralized so they cannot
+ * drift apart; is_string() guards a hand-edited file holding numbers or nested arrays,
+ * which would otherwise be a TypeError against cash_currency_ok()'s string parameter.
+ *
+ * '' is a real answer, not an error: it means Rob has no currency pinned, and callers
+ * that need one (filing a receipt) must ask him rather than guess.
+ */
+function cash_active_currency(): string
+{
+    if (!is_file(CASH_ACTIVE_FILE)) {
+        return '';
+    }
+    $data   = json_decode((string) file_get_contents(CASH_ACTIVE_FILE), true) ?: [];
+    $active = array_values(array_filter(
+        $data['active'] ?? [],
+        fn($c) => is_string($c) && cash_currency_ok($c)
+    ));
+    return $active[0] ?? '';
 }
 
 /**
