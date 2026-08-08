@@ -24,18 +24,52 @@ const SECURE_BIN_MANIFEST = SECURE_BIN_ROOT . "/secure_manifest.jsonl";
 /** The only destinations ai_secure will ever write to. Keys are the routing buckets. */
 const SECURE_BUCKETS = ['receipts', 'bills_paid', 'taxes_filed', 'statements'];
 
-/**
- * Accounting tag: which account/source paid for the captured document, so a future
- * Lemur-13 reconciler can scope-match it to the right statement (badmin #281).
- * Chip order matters — index.php renders the row in this order; 'unknown' is the
- * first chip and the default. Never trust a client value; validate via account_tag_ok().
+/* ---- accounting tag (which account/source paid) -----------------------------
+ * So a future Lemur-13 reconciler can scope-match a document to the right statement
+ * (badmin #281). Split like SECURE_CATEGORIES_*: accounts are mostly country-bound, and
+ * showing paypay in Adelaide is the same noise as showing an Australian bank in Tokyo.
+ *
+ *   ACCOUNT_TAGS_SHARED       — usable anywhere; 'unknown' is first and is the default.
+ *   ACCOUNT_TAGS_BY_CURRENCY  — that country's own accounts, keyed by currency code.
+ *
+ * Chip order matters: index.php renders SHARED first, then the active currency's own.
+ * Never trust a client value; validate via account_tag_ok().
  */
-const ACCOUNT_TAGS = ['unknown', 'cash', 'wise', 'mufg-bank', 'google-wallet', 'paypay', 'paypal', 'mufg-card'];
+const ACCOUNT_TAGS_SHARED = ['unknown', 'cash', 'wise', 'paypal'];
 
-/** True iff $t is an allowed accounting tag. */
+const ACCOUNT_TAGS_BY_CURRENCY = [
+    'JPY' => ['mufg-bank', 'mufg-card', 'paypay', 'google-wallet'],
+    'AUD' => [ /* TODO Rob: fill in once the Australian accounts are open */ ],
+];
+
+/** Chips to show for the 📍active currency: shared tags first, then that country's own. */
+function account_tags_for(string $cur): array
+{
+    return array_values(array_unique(array_merge(
+        ACCOUNT_TAGS_SHARED,
+        ACCOUNT_TAGS_BY_CURRENCY[$cur] ?? []
+    )));
+}
+
+/** Every tag any currency allows — the validation vocabulary, not a chip row. */
+function account_tags_all(): array
+{
+    $out = ACCOUNT_TAGS_SHARED;
+    foreach (ACCOUNT_TAGS_BY_CURRENCY as $tags) {
+        $out = array_merge($out, $tags);
+    }
+    return array_values(array_unique($out));
+}
+
+/**
+ * True iff $t is an allowed accounting tag, in ANY currency — deliberately wider than
+ * the chips on screen. A JPY receipt filed while AUD is active legitimately carries
+ * 'paypay', and validating against the active currency alone would silently downgrade
+ * it to 'unknown'.
+ */
 function account_tag_ok(string $t): bool
 {
-    return in_array($t, ACCOUNT_TAGS, true);
+    return in_array($t, account_tags_all(), true);
 }
 
 /**

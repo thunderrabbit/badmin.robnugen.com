@@ -132,7 +132,7 @@ $all_categories    = secure_categories()['all'];          // full searchable voc
 
 <script>
 const BUCKETS = <?php echo json_encode(SECURE_BUCKETS); ?>;
-const ACCOUNT_TAGS = <?php echo json_encode(ACCOUNT_TAGS); ?>;
+const ACCOUNT_TAGS = <?php echo json_encode(account_tags_for($active_currency)); ?>;   // shared + active currency's own
 const COMMON_CATEGORIES = <?php echo json_encode($common_categories); ?>;   // active-currency quick chips
 const ALL_CATEGORIES    = <?php echo json_encode($all_categories); ?>;      // full searchable vocabulary
 const $ = id => document.getElementById(id);
