@@ -36,10 +36,12 @@ foreach (CASH_CURRENCIES as $code => $flag) {
     ];
 }
 
+// At most ONE currency is active (see set_active.php). Normalize the same way it does,
+// so a file written before single-select renders as one pin here too.
 $active_data = is_file(CASH_ACTIVE_FILE)
     ? (json_decode((string) file_get_contents(CASH_ACTIVE_FILE), true) ?: [])
     : [];
-$active = array_values(array_filter($active_data['active'] ?? [], 'cash_currency_ok'));
+$active = array_slice(array_values(array_filter($active_data['active'] ?? [], 'cash_currency_ok')), 0, 1);
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -96,7 +98,8 @@ $active = array_values(array_filter($active_data['active'] ?? [], 'cash_currency
   | <a href="/cash_balance/">💵 cash</a>
   <h1>💵 Cash balances</h1>
   <p class="muted">Point-in-time cash on hand, per currency. Tap a balance to update it.
-     Tap 📍 to mark the currency you're currently using — only those get a “stale” nudge.</p>
+     Tap 📍 to set the one currency you're currently using — it gets the “stale” nudge,
+     and 🔒 secure stamps it onto every receipt you scan.</p>
 
   <section>
     <label for="password">Password</label>
@@ -108,7 +111,8 @@ $active = array_values(array_filter($active_data['active'] ?? [], 'cash_currency
 
 <script>
 const BOARD      = <?php echo json_encode($board); ?>;
-const ACTIVE     = new Set(<?php echo json_encode($active); ?>);
+const ACTIVE     = new Set(<?php echo json_encode($active); ?>);   // holds at most one code
+
 const STALE_DAYS = <?php echo json_encode(CASH_STALE_DAYS); ?>;
 const $ = id => document.getElementById(id);
 const pw = $('password'), status = $('status');
@@ -174,9 +178,12 @@ function rowFor(c) {
     }
   }
 
+  // Single-select: tapping an inactive pin moves 📍 here from wherever it was. The server
+  // returns the authoritative set, so the previously-active pin clears itself on re-render.
   const pin = document.createElement('button');
   pin.className = 'pin' + (ACTIVE.has(c.code) ? ' on' : '');
-  pin.textContent = '📍'; pin.title = ACTIVE.has(c.code) ? 'active — tap to unmark' : 'mark active';
+  pin.textContent = '📍';
+  pin.title = ACTIVE.has(c.code) ? 'active — tap to unmark' : 'make this the active currency';
   pin.onclick = () => toggleActive(c.code, !ACTIVE.has(c.code));
   row.append(pin);
 
