@@ -1,6 +1,17 @@
 <?php
 require_once "/home/thundergoblin/secure_config.php";   // SECURE_BUCKETS + category helpers (above web root, no side effects on include)
 
+/* Apache serves this host with "Cache-Control: max-age=600", and this page bakes the
+ * 📍active currency into its banner, its account chips and its category chips at render
+ * time. A cached copy is not a cosmetic problem here: after switching JPY -> AUD it would
+ * still say 🇯🇵 JPY over Japanese chips, and a receipt filed against it would be stamped
+ * with the wrong currency and land in the wrong budget — silently, and looking right.
+ *
+ * So this page must never be served from cache. Apache's directive still rides along;
+ * per RFC 7234 the combined header is the union of both, and no-store wins. */
+header('Cache-Control: no-store, no-cache, must-revalidate, max-age=0');
+header('Pragma: no-cache');
+
 // The single 📍active cash currency (set on the cash board) is the currency every receipt
 // scanned here is filed under, and it drives the quick category chips. '' means nothing is
 // pinned — the page says so plainly rather than guessing a country.

@@ -1,6 +1,18 @@
 <?php
 require_once "/home/thundergoblin/secure_config.php";   // CASH_* (above web root, no side effects on include)
 
+/* Apache serves this host with "Cache-Control: max-age=600". This page renders MUTABLE
+ * server state — the 📍active currency and the latest balances — so a reload inside that
+ * ten-minute window returns the pre-toggle HTML from the browser cache and the server is
+ * never asked. That reads exactly like "the currency didn't save", while the file on disk
+ * is perfectly correct: the toggle is live JS, the reload is a cached document.
+ *
+ * Apache's directive still rides along on the response. Per RFC 7234 multiple
+ * Cache-Control headers combine into one comma-separated list, and no-store in that list
+ * wins, so this is sufficient without touching the vhost. */
+header('Cache-Control: no-store, no-cache, must-revalidate, max-age=0');
+header('Pragma: no-cache');
+
 /**
  * Latest snapshot for one currency = the last VALID JSON line of its append-only file.
  * Files are tiny (one line per manual entry), so reading the whole file is fine here.
