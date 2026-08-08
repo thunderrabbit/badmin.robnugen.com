@@ -212,6 +212,32 @@ function cash_currency_ok(string $cur): bool
 }
 
 /**
+ * The single 📍active currency code, or '' when none is set.
+ *
+ * Several pages read cash_active.json — the cash board, /ai_secure, name_item.php — and
+ * every one of them needs the same normalization: tolerate a missing or hand-edited
+ * file, drop codes no longer on the whitelist, and take the FIRST valid entry (state
+ * written before single-select may still list several). Centralized so they cannot
+ * drift apart; is_string() guards a hand-edited file holding numbers or nested arrays,
+ * which would otherwise be a TypeError against cash_currency_ok()'s string parameter.
+ *
+ * '' is a real answer, not an error: it means Rob has no currency pinned, and callers
+ * that need one (filing a receipt) must ask him rather than guess.
+ */
+function cash_active_currency(): string
+{
+    if (!is_file(CASH_ACTIVE_FILE)) {
+        return '';
+    }
+    $data   = json_decode((string) file_get_contents(CASH_ACTIVE_FILE), true) ?: [];
+    $active = array_values(array_filter(
+        $data['active'] ?? [],
+        fn($c) => is_string($c) && cash_currency_ok($c)
+    ));
+    return $active[0] ?? '';
+}
+
+/**
  * Whitelisted absolute path to a currency's append-only snapshot file, or null.
  * Mirror of secure_bucket_dir(): never concatenate client input into a path
  * without passing through here. Code comes from the whitelist; filename is fixed-format.

@@ -44,21 +44,17 @@ if (!is_dir(CASH_DIR) && !@mkdir(CASH_DIR, 0700, true)) {
     fail('could not create cash dir');
 }
 
-// load current active state (defensive: tolerate a missing / malformed file, drop stale
-// codes). A file written before single-select may still list several — the first valid
-// entry wins and the rest are dropped, rather than letting stale state leak forward.
-$cur    = is_file(CASH_ACTIVE_FILE)
-    ? (json_decode((string) file_get_contents(CASH_ACTIVE_FILE), true) ?: [])
-    : [];
-$active = array_slice(array_values(array_filter($cur['active'] ?? [], 'cash_currency_ok')), 0, 1);
+// cash_active_currency() does the defensive read (missing / malformed file, stale codes,
+// pre-single-select state listing several — first valid entry wins).
+$current = cash_active_currency();
 
-// Marking replaces the whole set; unmarking clears ONLY this currency. Unmarking must
-// not be a blanket reset: the client sends active=0 for the pin it tapped, and a stale
-// or hand-made request naming a different currency should never unmark the real one.
+// Marking replaces whatever was active; unmarking clears ONLY this currency. Unmarking
+// must not be a blanket reset: the client sends active=0 for the pin it tapped, and a
+// stale or hand-made request naming a different currency should never unmark the real one.
 if ($want_active) {
     $active = [$currency];
 } else {
-    $active = array_values(array_diff($active, [$currency]));
+    $active = ($current === '' || $current === $currency) ? [] : [$current];
 }
 
 $out = json_encode(

@@ -36,12 +36,9 @@ foreach (CASH_CURRENCIES as $code => $flag) {
     ];
 }
 
-// At most ONE currency is active (see set_active.php). Normalize the same way it does,
-// so a file written before single-select renders as one pin here too.
-$active_data = is_file(CASH_ACTIVE_FILE)
-    ? (json_decode((string) file_get_contents(CASH_ACTIVE_FILE), true) ?: [])
-    : [];
-$active = array_slice(array_values(array_filter($active_data['active'] ?? [], 'cash_currency_ok')), 0, 1);
+// At most ONE currency is active (see set_active.php). '' means none is pinned.
+$active_code = cash_active_currency();
+$active      = $active_code === '' ? [] : [$active_code];
 ?>
 <!DOCTYPE html>
 <html lang="en">
