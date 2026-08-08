@@ -418,6 +418,7 @@ $('confirmBtn').onclick = async () => {
   fd.append('password', pw.value);
   fd.append('token', state.token);
   fd.append('name', name);
+  fd.append('currency', state.cur.code);
   fd.append('description', $('aiDesc').textContent);
   $('confirmBtn').disabled = true; setStatus('Filing…');
   try {

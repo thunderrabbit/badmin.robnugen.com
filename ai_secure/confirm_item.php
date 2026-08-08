@@ -9,7 +9,9 @@
  *   - the manifest lives INSIDE secure_bin, not in the public tree
  *   - the response carries no URL/markdown (the files are not web-served, by design)
  *
- *  POST: password, token, name, description?  (bucket comes from the staged sidecar)
+ *  POST: password, token, name, currency, description?
+ *        (bucket, account_tag and category come from the staged sidecar; currency does
+ *         not — it is settled after staging, once Claude has read the photo.)
  *
  * Single photo  -> filed FLAT in the bucket dir:
  *    secure_bin/<bucket>/2026-jun-19-<slug>.jpg
@@ -46,6 +48,18 @@ if ($slug === '') {
 
 $description = trim($_POST['description'] ?? '');
 $name        = trim($_POST['name'] ?? '');
+
+// Currency arrives from the page rather than the staging sidecar, because it is settled
+// AFTER staging: Claude reads it from the photo and Rob confirms or corrects it.
+//
+// This is the ONE field here that fails hard. account_tag and category both degrade to a
+// safe default when they don't validate, which is right for a hint — but a record with no
+// currency is the exact ambiguity this field exists to remove, and a wrong one lands real
+// money in the wrong budget without ever looking wrong. Refuse instead.
+$currency = strtoupper(trim($_POST['currency'] ?? ''));
+if (!cash_currency_ok($currency)) {
+    fail('a valid currency is required');
+}
 
 // ---- load the staged photo group from its sidecar ---------------------------
 $allowed_ext = ['jpg', 'jpeg', 'png', 'gif', 'webp'];
@@ -134,6 +148,7 @@ foreach ($photos as $p) {
     $record = [
         'item'        => $slug,
         'file'        => $rel,
+        'currency'    => $currency,
         'bucket'      => $bucket,
         'account_tag' => $account_tag,
         'category'    => $category,
