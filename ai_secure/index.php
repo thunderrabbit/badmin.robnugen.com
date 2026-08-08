@@ -59,6 +59,13 @@ $all_categories    = secure_categories()['all'];          // full searchable voc
     .curbar .cur { font-size: 1.15rem; font-weight: 600; }
     .curbar .cur.none { color: #b91c1c; font-weight: 600; font-size: 1rem; }
     .curbar a { margin-left: auto; font-size: .85rem; color: #666; }
+    /* "change" reveals the chip row; a button for keyboard/tap semantics, styled as a link */
+    .curbar .linkish { margin-left: auto; width: auto; margin-top: 0; background: none;
+                       color: #2563eb; font-size: .85rem; font-weight: 400; padding: 4px;
+                       text-decoration: underline; }
+    /* why the selector opened — a mismatch worth one glance, not an error */
+    .curnote { margin: 4px 0 0; padding: 8px 10px; background: #fef3c7; color: #92400e;
+               border-radius: 8px; font-size: .9rem; }
     .ok { color: #15803d; } .err { color: #b91c1c; }
     code { background: #eef; padding: 2px 6px; border-radius: 4px; word-break: break-all; }
     #status { min-height: 1.4em; font-weight: 600; }
@@ -112,6 +119,8 @@ $all_categories    = secure_categories()['all'];          // full searchable voc
   <section id="review" class="hidden">
     <p id="aiDesc" class="muted"></p>
 
+    <div id="currencyBox"></div>
+
     <label>Suggested names <span class="muted" id="modelTag"></span></label>
     <div class="chips" id="nameChips"></div>
 
@@ -135,8 +144,12 @@ const BUCKETS = <?php echo json_encode(SECURE_BUCKETS); ?>;
 const ACCOUNT_TAGS = <?php echo json_encode(account_tags_for($active_currency)); ?>;   // shared + active currency's own
 const COMMON_CATEGORIES = <?php echo json_encode($common_categories); ?>;   // active-currency quick chips
 const ALL_CATEGORIES    = <?php echo json_encode($all_categories); ?>;      // full searchable vocabulary
+const CURRENCIES        = <?php echo json_encode(CASH_CURRENCIES); ?>;      // code => flag, cash-board order
 const $ = id => document.getElementById(id);
-let state = { token: '', model: 'haiku', bucket: '', accountTag: 'unknown', category: '' };
+// cur: the resolved currency for THIS receipt — {code, expanded, note, assumed} or null
+// before the first naming call. See resolveCurrency() for how the three server answers
+// collapse into it.
+let state = { token: '', model: 'haiku', bucket: '', accountTag: 'unknown', category: '', cur: null };
 let photos = [];   // File objects, in order
 let views  = [];   // Claude-suggested view per photo (parallel to photos)
 
@@ -259,6 +272,82 @@ photo.addEventListener('change', () => {
 });
 $('addBtn').onclick = () => photo.click();
 
+// ---- currency ---------------------------------------------------------------
+// Three answers come back unresolved from name_item.php: what Claude read off the photo,
+// a 3-letter code the cash board doesn't carry, and what's 📍active. Collapse them here,
+// where the decision is visible, into a currency plus whether Rob needs to look at it.
+//
+// The selector stays HIDDEN whenever the answer is unambiguous — that is the common case
+// and it should cost no taps and no screen. It only opens when the photo and the cash
+// board disagree, or when neither can answer.
+function resolveCurrency(read, unsupported, active) {
+  if (unsupported) {                       // e.g. THB while the board only carries six
+    return { code: '', expanded: true, assumed: false,
+             note: 'Claude read ' + unsupported + ", which isn't on your cash board. "
+                 + 'Pick what to file it under, or add ' + unsupported + ' on 💵 cash.' };
+  }
+  if (read && active && read !== active) { // stale receipt from elsewhere, or a misread $
+    return { code: read, expanded: true, assumed: false,
+             note: 'Claude read ' + read + ' but ' + active + ' is active — confirm or correct.' };
+  }
+  if (read)   { return { code: read,   expanded: false, assumed: false, note: '' }; }
+  if (active) { return { code: active, expanded: false, assumed: true,  note: '' }; }
+  return { code: '', expanded: true, assumed: false,
+           note: 'Nothing is 📍active and no currency was legible — pick one.' };
+}
+
+function renderCurrency() {
+  const box = $('currencyBox');
+  box.innerHTML = '';
+  const r = state.cur;
+  if (!r) { syncConfirm(); return; }
+
+  if (!r.expanded) {
+    const bar = document.createElement('div');
+    bar.className = 'curbar';
+    const s = document.createElement('span');
+    s.className = 'cur';
+    s.textContent = (CURRENCIES[r.code] || '') + ' ' + r.code + (r.assumed ? ' (assumed)' : '');
+    const btn = document.createElement('button');
+    btn.className = 'linkish';
+    btn.textContent = 'change';
+    btn.onclick = () => { state.cur = Object.assign({}, r, { expanded: true }); renderCurrency(); };
+    bar.append(s, btn);
+    box.append(bar);
+  } else {
+    const lbl = document.createElement('label');
+    lbl.textContent = 'Which currency?';
+    box.append(lbl);
+    if (r.note) {
+      const n = document.createElement('p');
+      n.className = 'curnote';
+      n.textContent = r.note;
+      box.append(n);
+    }
+    const chips = document.createElement('div');
+    chips.className = 'chips';
+    Object.keys(CURRENCIES).forEach(code => {
+      const el = document.createElement('span');
+      el.className = 'chip' + (r.code === code ? ' selected' : '');
+      el.textContent = CURRENCIES[code] + ' ' + code;
+      el.onclick = () => {
+        state.cur = Object.assign({}, state.cur, { code: code, assumed: false });
+        renderCurrency();
+      };
+      chips.append(el);
+    });
+    box.append(chips);
+  }
+  syncConfirm();
+}
+
+// Filing without a currency is the one thing this page refuses to do: it is exactly the
+// silent-wrong-budget bug the currency exists to prevent. confirm_item.php rejects it
+// independently — this is convenience, not the guard.
+function syncConfirm() {
+  $('confirmBtn').disabled = !(state.cur && state.cur.code);
+}
+
 // ---- name suggestion chips --------------------------------------------------
 function renderNames(names) {
   $('nameChips').innerHTML = '';
@@ -301,10 +390,15 @@ async function askNames(model) {
     renderStrip();
     $('modelTag').textContent = j.model ? '(' + j.model + ')' : '';
     $('aiDesc').textContent = j.description || '';
+    state.cur = resolveCurrency(j.read_currency || '', j.unsupported || '', j.active_currency || '');
+    renderCurrency();
     renderNames(j.names);
     $('review').classList.remove('hidden');
   } catch (e) {
     setStatus('Network error: ' + e.message + ' — type a name to file manually.', 'err');
+    // no server answer at all, so nothing can be assumed: Rob picks the currency himself
+    state.cur = resolveCurrency('', '', '');
+    renderCurrency();
     $('review').classList.remove('hidden'); renderNames([]);
   } finally {
     nameBtn.disabled = false; $('sonnetBtn').disabled = false;
@@ -319,6 +413,7 @@ $('confirmBtn').onclick = async () => {
   const name = $('name').value.trim();
   if (!name) { setStatus('A name is required.', 'err'); return; }
   if (!state.token) { setStatus('Tap "Name it ✨" first so the photos are staged.', 'err'); return; }
+  if (!state.cur || !state.cur.code) { setStatus('Pick a currency first.', 'err'); return; }
   const fd = new FormData();
   fd.append('password', pw.value);
   fd.append('token', state.token);
@@ -353,14 +448,15 @@ function renderResult(j) {
 $('nextBtn').onclick = () => {
   // keep the bucket selected — Rob usually files a run of the same kind.
   // reset the account tag + category: each document is a deliberate choice (no stale carry-over).
-  state = { token: '', model: 'haiku', bucket: state.bucket, accountTag: 'unknown', category: '' };
+  state = { token: '', model: 'haiku', bucket: state.bucket, accountTag: 'unknown', category: '', cur: null };
   photos = []; views = [];
   photo.value = '';
   $('name').value = ''; $('aiDesc').textContent = '';
   $('nameChips').innerHTML = ''; $('resultFiles').innerHTML = '';
   $('categorySearch').value = ''; renderCatResults('');
   $('result').classList.add('hidden'); $('review').classList.add('hidden');
-  $('confirmBtn').disabled = false; setStatus('');
+  setStatus('');
+  renderCurrency();          // clears the box and re-disables Confirm for the next doc
   renderAccountChips();
   renderCategories();
   renderStrip();
@@ -370,6 +466,7 @@ $('nextBtn').onclick = () => {
 renderBuckets();
 renderAccountChips();
 renderCategories();
+renderCurrency();
 renderStrip();
 </script>
 </body>
