@@ -1,13 +1,11 @@
 <?php
 require_once "/home/thundergoblin/secure_config.php";   // SECURE_BUCKETS + category helpers (above web root, no side effects on include)
 
-// The 📍active cash currencies (from the cash board) drive which quick category chips
-// show. Read exactly as cash_balance/index.php does; tolerate a missing/malformed file.
-$active_data       = is_file(CASH_ACTIVE_FILE)
-    ? (json_decode((string) file_get_contents(CASH_ACTIVE_FILE), true) ?: [])
-    : [];
-$active            = array_values(array_filter($active_data['active'] ?? [], 'cash_currency_ok'));
-$common_categories = secure_common_categories($active);   // union-deduped quick chips
+// The single 📍active cash currency (set on the cash board) is the currency every receipt
+// scanned here is filed under, and it drives the quick category chips. '' means nothing is
+// pinned — the page says so plainly rather than guessing a country.
+$active_currency   = cash_active_currency();
+$common_categories = secure_common_categories($active_currency === '' ? [] : [$active_currency]);
 $all_categories    = secure_categories()['all'];          // full searchable vocabulary
 ?>
 <!DOCTYPE html>
@@ -55,6 +53,12 @@ $all_categories    = secure_categories()['all'];          // full searchable voc
                 font-size: .9rem; line-height: 1; padding: 0; margin: 0; cursor: pointer; }
     .hidden { display: none; }
     .muted { color: #666; font-size: .9rem; }
+    /* active-currency bar: one line, read-only — changed on the cash board */
+    .curbar { display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap;
+              padding-bottom: 10px; margin-bottom: 4px; border-bottom: 1px solid #eee; }
+    .curbar .cur { font-size: 1.15rem; font-weight: 600; }
+    .curbar .cur.none { color: #b91c1c; font-weight: 600; font-size: 1rem; }
+    .curbar a { margin-left: auto; font-size: .85rem; color: #666; }
     .ok { color: #15803d; } .err { color: #b91c1c; }
     code { background: #eef; padding: 2px 6px; border-radius: 4px; word-break: break-all; }
     #status { min-height: 1.4em; font-weight: 600; }
@@ -76,6 +80,16 @@ $all_categories    = secure_categories()['all'];          // full searchable voc
   </section>
 
   <section id="capture">
+    <div class="curbar">
+<?php if ($active_currency !== ''): ?>
+      <span class="cur"><?php echo CASH_CURRENCIES[$active_currency]; ?> <?php echo htmlspecialchars($active_currency); ?></span>
+      <a href="/cash_balance/">change on 💵 cash →</a>
+<?php else: ?>
+      <span class="cur none">⚠️ no active currency</span>
+      <a href="/cash_balance/">set one on 💵 cash →</a>
+<?php endif; ?>
+    </div>
+
     <label>Which bucket?</label>
     <div class="chips" id="bucketChips"></div>
 
