@@ -5,7 +5,7 @@ require_once "/home/thundergoblin/secure_config.php";   // SECURE_BUCKETS + cate
 // scanned here is filed under, and it drives the quick category chips. '' means nothing is
 // pinned — the page says so plainly rather than guessing a country.
 $active_currency   = cash_active_currency();
-$common_categories = secure_common_categories($active_currency === '' ? [] : [$active_currency]);
+$common_categories = secure_common_categories($active_currency);
 $all_categories    = secure_categories()['all'];          // full searchable vocabulary
 ?>
 <!DOCTYPE html>

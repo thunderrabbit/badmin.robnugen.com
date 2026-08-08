@@ -58,8 +58,9 @@ function secure_bucket_dir(string $bucket): ?string
  *
  *   SECURE_CATEGORIES_ALL    — full searchable vocabulary (one shared list).
  *   SECURE_CATEGORIES_COMMON — per-currency quick chips, keyed by cash-board
- *     currency code (CASH_CURRENCIES). cash_active.json picks which show; when
- *     several currencies are active, index.php UNIONS them (deduped).
+ *     currency code (CASH_CURRENCIES). The single 📍active currency in
+ *     cash_active.json picks exactly one list — no union, so a tapped chip
+ *     always names one country's budget line.
  *
  * index.php shows a shortened display (the part after the group prefix) but
  * stores/validates the WHOLE string. Every COMMON entry is also in ALL so a tapped
@@ -156,21 +157,21 @@ function secure_categories(): array
 }
 
 /**
- * Quick-chip categories for the given active currency codes (from cash_active.json),
- * unioned in COMMON order with duplicates removed. Unknown/inactive currencies add nothing.
+ * Quick-chip categories for the 📍active currency. An unknown code or '' (nothing
+ * pinned) yields none, and the page falls back to its search box over the full
+ * vocabulary — an empty chip row is a fine outcome, a wrong one is not.
+ *
+ * No union and no dedup: with one active currency there is exactly one list, which is
+ * the point. 'Needs: 🛒 Groceries' appears under both JPY and AUD, so a merged row
+ * could never say which country a tapped chip meant.
+ *
+ * Defensive normalization because secure_categories() may be answering from
+ * secure_categories.json, where 'common' is whatever that file happens to hold.
  */
-function secure_common_categories(array $active): array
+function secure_common_categories(string $cur): array
 {
-    $common = secure_categories()['common'];
-    $out = [];
-    foreach ($active as $cur) {
-        foreach ($common[$cur] ?? [] as $c) {
-            if (!in_array($c, $out, true)) {
-                $out[] = $c;
-            }
-        }
-    }
-    return $out;
+    $chips = secure_categories()['common'][$cur] ?? [];
+    return is_array($chips) ? array_values(array_filter(array_map('strval', $chips))) : [];
 }
 
 /** True iff $c is an allowed category. Empty is NOT ok — callers treat '' as "no category". */
