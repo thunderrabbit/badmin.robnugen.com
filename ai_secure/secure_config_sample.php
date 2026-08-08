@@ -19,7 +19,23 @@
 
 const SECURE_BIN_ROOT     = "/home/thundergoblin/secure_bin";
 const SECURE_BIN_STAGING  = SECURE_BIN_ROOT . "/.staging";
-const SECURE_BIN_MANIFEST = SECURE_BIN_ROOT . "/secure_manifest.jsonl";
+
+/**
+ * Whitelisted absolute path to one currency's append-only manifest, or null.
+ *
+ * One manifest PER CURRENCY, not one shared file, so the ledgers stay separable — and
+ * because name_item.php feeds the last 25 names from here to Claude as Rob's naming
+ * style. Against a shared file a Coles receipt in Adelaide would be read while Claude is
+ * primed on "lawson snacks" and "jr east suica charge".
+ *
+ * Mirror of cash_snapshot_path(): the code comes off the whitelist and the filename is
+ * fixed-format, so no client input ever reaches the path. (Defined here, beside the
+ * other paths; cash_currency_ok() lives further down but PHP hoists both.)
+ */
+function secure_manifest_path(string $cur): ?string
+{
+    return cash_currency_ok($cur) ? SECURE_BIN_ROOT . "/secure_manifest_{$cur}.jsonl" : null;
+}
 
 /** The only destinations ai_secure will ever write to. Keys are the routing buckets. */
 const SECURE_BUCKETS = ['receipts', 'bills_paid', 'taxes_filed', 'statements'];

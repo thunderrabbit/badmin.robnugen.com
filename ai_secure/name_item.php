@@ -265,7 +265,9 @@ $result = claude_name_secure_docs(
     $model,
     $bucket,
     $active_currency,
-    recent_item_names(25, SECURE_BIN_MANIFEST),
+    // style examples from THIS currency's ledger, so Japanese vendor names don't prime
+    // Claude while it reads an Australian receipt. '' (nothing pinned) yields no examples.
+    recent_item_names(25, secure_manifest_path($active_currency) ?? ''),
     $anthropic_api_key ?? ''
 );
 

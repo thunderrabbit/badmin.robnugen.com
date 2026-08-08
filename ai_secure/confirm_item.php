@@ -116,6 +116,9 @@ if ($multi) {
 
 $date_prefix = strtolower(date("Y-M-d"));            // 2026-jun-19
 
+// $currency passed cash_currency_ok() above, so this is never null.
+$manifest = secure_manifest_path($currency);
+
 // ---- file each photo (atomic rename, original only) -------------------------
 $filed = [];
 
@@ -160,8 +163,8 @@ foreach ($photos as $p) {
     ];
     $json = json_encode($record, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
 
-    // manifest line, INSIDE secure_bin (never the public tree)
-    @file_put_contents(SECURE_BIN_MANIFEST, $json . "\n", FILE_APPEND | LOCK_EX);
+    // manifest line, INSIDE secure_bin (never the public tree), in this currency's ledger
+    @file_put_contents($manifest, $json . "\n", FILE_APPEND | LOCK_EX);
     // per-image sidecar next to the filed image, e.g. 2026-jun-19-foo.jpg.json
     @file_put_contents($final . ".json", $json);
 
