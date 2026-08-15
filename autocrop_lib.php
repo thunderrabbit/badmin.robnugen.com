@@ -28,6 +28,114 @@ const AC_KEEP_FRAC        = 0.15;   // keep blobs >= this fraction of the larges
 const AC_MIN_AREA_FRAC    = 0.02;   // smaller than this => detection failed
 const AC_MAX_AREA_FRAC    = 0.90;   // larger than this => detection failed
 
+const AC_SUBJECT_FILL     = 0.80;   // subject occupies this much of each output side
+const AC_JPEG_QUALITY     = 92;
+
+/**
+ * Detect the subject, pad the box out, and crop the file in place.
+ *
+ * @return array{0:int,1:int,2:int,3:int}|null  the crop box used, or null if no
+ *         subject was found — in which case the file is left untouched.
+ */
+function autocrop_to_subject(string $image_path, float $fill = AC_SUBJECT_FILL): ?array
+{
+    $bbox = detect_subject_bbox($image_path);
+    if ($bbox === null) {
+        return null;
+    }
+
+    $size = @getimagesize($image_path);
+    if (!$size) {
+        return null;
+    }
+
+    $box = pad_bbox_to_fill($bbox, (int) $size[0], (int) $size[1], $fill);
+
+    return crop_image_in_place($image_path, $box) ? $box : null;
+}
+
+/**
+ * Grow a subject box so the subject fills $fill of each side of the result, keeping
+ * the subject centred.
+ *
+ * Each side is padded independently, so the output aspect ratio follows the SUBJECT,
+ * not the camera — which is what Rob's hand crop does (his 3:4 frame became a 0.63
+ * crop). Near an edge the window slides to stay inside the image rather than
+ * shrinking, so the subject keeps its margin on the other three sides.
+ *
+ * @return array{0:int,1:int,2:int,3:int}  [x, y, w, h]
+ */
+function pad_bbox_to_fill(array $bbox, int $img_w, int $img_h, float $fill = AC_SUBJECT_FILL): array
+{
+    [$bx, $by, $bw, $bh] = $bbox;
+
+    $out_w = min((int) round($bw / $fill), $img_w);
+    $out_h = min((int) round($bh / $fill), $img_h);
+
+    $x = (int) round($bx + $bw / 2 - $out_w / 2);
+    $y = (int) round($by + $bh / 2 - $out_h / 2);
+
+    $x = max(0, min($x, $img_w - $out_w));
+    $y = max(0, min($y, $img_h - $out_h));
+
+    return [$x, $y, $out_w, $out_h];
+}
+
+/**
+ * Crop a file to [x, y, w, h], rewriting it in its original format.
+ */
+function crop_image_in_place(string $image_path, array $box, int $quality = AC_JPEG_QUALITY): bool
+{
+    $type = @exif_imagetype($image_path);
+    $src  = _ac_load($image_path);
+    if (!$src) {
+        return false;
+    }
+
+    $cropped = imagecrop($src, ['x' => $box[0], 'y' => $box[1], 'width' => $box[2], 'height' => $box[3]]);
+    imagedestroy($src);
+    if (!$cropped) {
+        return false;
+    }
+
+    if ($type === IMAGETYPE_PNG || $type === IMAGETYPE_WEBP) {
+        imagealphablending($cropped, false);
+        imagesavealpha($cropped, true);
+    }
+
+    $ok = match ($type) {
+        IMAGETYPE_JPEG => imagejpeg($cropped, $image_path, $quality),
+        IMAGETYPE_PNG  => imagepng($cropped, $image_path),
+        IMAGETYPE_GIF  => imagegif($cropped, $image_path),
+        IMAGETYPE_WEBP => imagewebp($cropped, $image_path, $quality),
+        default        => false,
+    };
+    imagedestroy($cropped);
+
+    return (bool) $ok;
+}
+
+/**
+ * "Candy Mama" -> "candy-mama". Directory convention.
+ *
+ * Same rule as slugify_item() in ai/item_naming.php, duplicated on purpose: requiring
+ * that file would drag the MT3 flow into the leave-Japan item archive's constants and
+ * Claude helpers, and would redeclare the function if both were ever loaded together.
+ */
+function ac_slugify(string $text): string
+{
+    $slug = mb_strtolower(trim($text));
+    $slug = preg_replace('/[^a-z0-9]+/', '-', $slug);
+    $slug = preg_replace('/-+/', '-', $slug);
+    return trim($slug, '-');
+}
+
+/** "Candy Mama" -> "candy_mama". Filename convention. */
+function ac_file_slug(string $text): string
+{
+    return str_replace('-', '_', ac_slugify($text));
+}
+
 /**
  * Bounding box of the subject, in full-resolution pixels.
  *
