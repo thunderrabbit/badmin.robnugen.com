@@ -43,7 +43,7 @@
   </style>
 </head>
 <body>
-  <a href="/">journal</a> | <a href="/ai/">ai</a> | <a href="/sayonara/">sayonara</a> | <a href="/items/">🏠 items</a> | <a href="/ai_secure/">🔒 secure 🔒</a> | <a href="/cash_balance/">💵 cash</a>
+  <a href="/">journal</a> | <a href="/ai/">ai</a> | <a href="/sayonara/">sayonara</a> | <a href="/items/">🏠 items</a> | <a href="/ai_secure/">🔒 secure 🔒</a> | <a href="/cash_balance/">💵 cash</a> | <a href="/workers/">🔧 workers</a>
   <h1>🏠 Honor an item</h1>
 
   <section>

@@ -105,6 +105,7 @@ $active      = $active_code === '' ? [] : [$active_code];
   | <a href="/items/">🏠 items</a>
   | <a href="/ai_secure/">🔒 secure 🔒</a>
   | <a href="/cash_balance/">💵 cash</a>
+  | <a href="/workers/">🔧 workers</a>
   <h1>💵 Cash balances</h1>
   <p class="muted">Point-in-time cash on hand, per currency. Tap a balance to update it.
      Tap 📍 to set the one currency you're currently using — it gets the “stale” nudge,

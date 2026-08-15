@@ -43,7 +43,7 @@ require_once __DIR__ . "/../ai/item_naming.php";   // $ITEM_CATEGORIES, item_tag
   </style>
 </head>
 <body>
-  <a href="/">journal</a> | <a href="/ai/">ai</a> | <a href="/sayonara/">sayonara</a> | <a href="/items/">🏠 items</a> | <a href="/ai_secure/">🔒 secure 🔒</a> | <a href="/cash_balance/">💵 cash</a>
+  <a href="/">journal</a> | <a href="/ai/">ai</a> | <a href="/sayonara/">sayonara</a> | <a href="/items/">🏠 items</a> | <a href="/ai_secure/">🔒 secure 🔒</a> | <a href="/cash_balance/">💵 cash</a> | <a href="/workers/">🔧 workers</a>
   <h1>📦 Sayonara item uploader</h1>
 
   <section>

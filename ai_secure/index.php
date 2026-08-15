@@ -89,6 +89,7 @@ $all_categories    = secure_categories()['all'];          // full searchable voc
   | <a href="/items/">🏠 items</a>
   | <a href="/ai_secure/">🔒 secure 🔒</a>
   | <a href="/cash_balance/">💵 cash</a>
+  | <a href="/workers/">🔧 workers</a>
   <h1>🔒 Name a secure document</h1>
   <p class="muted">Filed outside the public web — receipts, paid bills, tax docs. Never web-served.</p>
 
