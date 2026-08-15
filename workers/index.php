@@ -1,3 +1,32 @@
+<?php
+/**
+ * The worker roster, newest members welcome. Hand-maintained on purpose: the older
+ * photos sit flat in workers/<YYYY>/ under inconsistent filenames (mr_greene_2019_feb_03.jpg
+ * puts the name first; super_spoony_bringing_marbles mixes in an action), so scanning
+ * disk for names would guess wrong more often than it helped.
+ *
+ * Display names only — ac_slugify() in autocrop_lib.php derives the directory slug,
+ * and every name here round-trips to the intended slug ("Mr McGlue" -> mr-mcglue).
+ *
+ * Anyone not on this list is still uploadable via "Other…" in the dropdown.
+ */
+$MT3_WORKERS = [
+    "Autosticks",
+    "Backpack Jack",
+    "Big Brother",
+    "Candy Mama",
+    "Doctor Sugar",
+    "G Choppy",
+    "Little Brother",
+    "Mr Greene",
+    "Mr McGlue",
+    "Ms McGlue",
+    "Pinky",
+    "Reversible Guy",
+    "Squarehead",
+    "Super Spoony",
+];
+?>
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -14,9 +43,16 @@
     section { background: #fff; border: 1px solid #ddd; border-radius: 10px;
               padding: var(--gap); margin-bottom: var(--gap); }
     label { display: block; font-weight: 600; margin: 8px 0 4px; }
-    input[type=text], input[type=password], input[type=file] {
+    input[type=text], input[type=password], input[type=file], select {
       width: 100%; font-size: 1rem; padding: 12px; border: 1px solid #bbb;
       border-radius: 8px; background: #fff; }
+    select { appearance: none; -webkit-appearance: none;
+             background-image: linear-gradient(45deg, transparent 50%, #666 50%),
+                               linear-gradient(135deg, #666 50%, transparent 50%);
+             background-position: calc(100% - 20px) 50%, calc(100% - 14px) 50%;
+             background-size: 6px 6px, 6px 6px; background-repeat: no-repeat;
+             padding-right: 40px; }
+    #nameOther { margin-top: 8px; }
     button { font-size: 1rem; padding: 12px 16px; border: 0; border-radius: 8px;
              background: #2563eb; color: #fff; font-weight: 600; cursor: pointer;
              width: 100%; margin-top: var(--gap); }
@@ -54,9 +90,16 @@
   </section>
 
   <section>
-    <label for="name">Worker name</label>
-    <input type="text" id="name" placeholder="Candy Mama">
-    <p class="muted" id="preview">Type a name to see where the photos will land.</p>
+    <label for="worker">Worker name</label>
+    <select id="worker">
+      <option value="">— pick a worker —</option>
+<?php foreach ($MT3_WORKERS as $w): ?>
+      <option><?php echo htmlspecialchars($w, ENT_QUOTES); ?></option>
+<?php endforeach; ?>
+      <option value="__other__">✏️ Other…</option>
+    </select>
+    <input type="text" id="nameOther" class="hidden" placeholder="New worker name">
+    <p class="muted" id="preview">Pick a worker to see where the photos will land.</p>
 
     <label for="photos">Photos (each is cropped to the object, ~80% of the frame)</label>
     <input type="file" id="photos" accept="image/*" multiple>
@@ -92,11 +135,19 @@ function datePrefix() {
   return `${p.year}_${p.month.toLowerCase()}_${p.day}_`;
 }
 
+// The roster covers the normal case; "Other…" swaps in a free-text box for a new worker.
+function workerName() {
+  const picked = $('worker').value;
+  return (picked === '__other__' ? $('nameOther').value : picked).trim();
+}
+
 function renderPreview() {
-  const name = $('name').value.trim();
+  const name = workerName();
   const ds = dirSlug(name);
   if (!ds) {
-    $('preview').textContent = 'Type a name to see where the photos will land.';
+    $('preview').textContent = $('worker').value === '__other__'
+      ? 'Type the new worker’s name.'
+      : 'Pick a worker to see where the photos will land.';
     $('preview').className = 'muted';
     return;
   }
@@ -111,11 +162,18 @@ function refresh() {
   $('picked').textContent = files.length
     ? `${files.length} photo${files.length > 1 ? 's' : ''}, numbered _01.._${String(files.length).padStart(2, '0')} in filename order`
     : '';
-  $('saveBtn').disabled = !(files.length && $('name').value.trim() && $('password').value);
+  $('saveBtn').disabled = !(files.length && workerName() && $('password').value);
 }
 
 $('photos').onchange = e => { files = sortNatural(e.target.files); refresh(); };
-$('name').oninput = () => { renderPreview(); refresh(); };
+$('worker').onchange = () => {
+  const other = $('worker').value === '__other__';
+  $('nameOther').classList.toggle('hidden', !other);
+  if (other) { $('nameOther').focus(); }
+  renderPreview();
+  refresh();
+};
+$('nameOther').oninput = () => { renderPreview(); refresh(); };
 $('password').oninput = refresh;
 
 function setStatus(msg, cls) {
@@ -138,7 +196,7 @@ function addRow(file, seq) {
 }
 
 $('saveBtn').onclick = async () => {
-  const name = $('name').value.trim();
+  const name = workerName();
   const pw = $('password').value;
   $('saveBtn').disabled = true;
   $('results').classList.remove('hidden');
