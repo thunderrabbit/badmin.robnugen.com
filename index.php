@@ -36,6 +36,7 @@ $day_number = $date_of_month + 15;
     <option value="mt3cons">MT3 construction/YYYY</option>
     <option value="taxj">Tax for Japan/YYYY</option>
     <option value="mt3parts">MT3 parts/YYYY</option>
+    <option value="mt3workers">MT3 workers/YYYY</option>
     <option value="quests">quests</option>
     <option value="plan">walk plan</option>
   </select> / <input type="text" name="sub_dir" placeholder="day-12" value=""/>

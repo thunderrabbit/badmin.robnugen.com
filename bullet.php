@@ -248,6 +248,7 @@ function determine_storage_directory(string $save_to, string $sub_dir)
     "blog" => "/home/thundergoblin/b.robnugen.com/blog/" . $this_year,
     "mt3cons" => "/home/thundergoblin/b.robnugen.com/art/marble_track_3/construction/" . $this_year,
     "mt3parts" => "/home/thundergoblin/b.robnugen.com/art/marble_track_3/track/parts/" . $this_year,
+    "mt3workers" => "/home/thundergoblin/b.robnugen.com/art/marble_track_3/workers/" . $this_year,
     "taxj" => "/home/thundergoblin/b.robnugen.com/tax/japan/" . $this_year,
     "quests" => "/home/thundergoblin/b.robnugen.com/quests/walk-to-niigata/2021/en_route",
     "plan" => "/home/thundergoblin/b.robnugen.com/quests/walk-to-niigata/2021/route_plans",
