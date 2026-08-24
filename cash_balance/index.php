@@ -111,9 +111,29 @@ $active      = $active_code === '' ? [] : [$active_code];
      Tap 📍 to set the one currency you're currently using — it gets the “stale” nudge,
      and 🔒 secure stamps it onto every receipt you scan.</p>
 
-  <section>
-    <label for="password">Password</label>
-    <input type="password" id="password" autocomplete="current-password" placeholder="badmin password">
+  <!-- A bare <input type=password> floating outside a form is invisible to password
+       managers: they file credentials as (origin, username, password), and with no
+       form and no username field there is nothing to file. Wrapping it in a real form
+       with a username field is what makes iOS Keychain / Chrome offer AutoFill here.
+       method=post matters — a form with no method defaults to GET, which would put the
+       password in the query string and straight into Apache's access log.
+       The form never actually submits (every write is a fetch), so onsubmit is a
+       no-op guard and action only gives the manager an origin to file the entry under.
+       NOTHING is stored by this site: the secret lives in the OS keychain, and the
+       server stays exactly as stateless as before — no cookie, no session, no token. -->
+  <section id="auth">
+    <form action="/cash_balance/" method="post" onsubmit="return false">
+      <input type="text" name="username" value="badmin" autocomplete="username" readonly hidden>
+      <label for="password">Password</label>
+      <input type="password" id="password" name="password" autocomplete="current-password" placeholder="badmin password">
+    </form>
+  </section>
+
+  <!-- Collapsing the form once the server has accepted the password is not just tidiness:
+       an AJAX login never navigates, and "the password form went away after a successful
+       request" is the heuristic Chrome uses to decide whether to offer to save. -->
+  <section id="unlocked" hidden>
+    <button class="secondary" id="relock">🔓 password accepted — tap to change</button>
   </section>
 
   <section id="board"></section>
@@ -129,6 +149,17 @@ const pw = $('password'), status = $('status');
 let editing = null;   // currency code currently in inline-edit mode, or null
 
 function setStatus(msg, cls) { status.textContent = msg; status.className = cls || 'muted'; }
+
+// The password stays in the (hidden) field for the rest of the page's life — every
+// write still POSTs it, so the server contract is unchanged. Only called after the
+// server has actually verified it, so a typo never hides the field.
+const auth = $('auth'), unlocked = $('unlocked');
+function markUnlocked() {
+  if (auth.hidden) return;
+  auth.hidden = true;
+  unlocked.hidden = false;
+}
+$('relock').onclick = () => { auth.hidden = false; unlocked.hidden = true; pw.focus(); };
 
 function fmtAmount(code, amt) {
   if (amt == null) return 'no balance yet';
@@ -219,6 +250,7 @@ async function saveBalance(code, rawAmount) {
     const r = await fetch('save_balance.php', { method: 'POST', body: fd });
     const j = await r.json();
     if (!j.ok) { setStatus('Could not save: ' + (j.error || 'error'), 'err'); return; }
+    markUnlocked();
     const c = BOARD.find(x => x.code === code);
     c.amount = j.amount; c.ts = j.ts;     // update the row in place
     editing = null; render();
@@ -238,6 +270,7 @@ async function toggleActive(code, makeActive) {
     const r = await fetch('set_active.php', { method: 'POST', body: fd });
     const j = await r.json();
     if (!j.ok) { setStatus('Could not update active: ' + (j.error || 'error'), 'err'); return; }
+    markUnlocked();
     ACTIVE.clear(); j.active.forEach(x => ACTIVE.add(x));   // authoritative set from server
     render();
     setStatus('', 'muted');
