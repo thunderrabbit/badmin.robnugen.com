@@ -92,9 +92,15 @@ $active      = $active_code === '' ? [] : [$active_code];
     .pin { background: none; border: 0; font-size: 1.3rem; padding: 4px; cursor: pointer;
            filter: grayscale(1) opacity(.35); }
     .pin.on { filter: none; }
-    /* inline editor */
-    .edit { display: flex; gap: 8px; flex: 1; align-items: center; }
-    .edit input { flex: 1; }
+    /* Inline editor. Sharing one flex line with the flag, code, Save, × and 📍 left
+       the number field about 40px wide on a phone — impossible to type into. The row
+       being edited wraps instead: flag + code keep line one, the editor gets a
+       full-width line of its own, so the input is as wide as the card. */
+    .row.editing { flex-wrap: wrap; row-gap: 8px; }
+    .edit { display: flex; gap: 8px; flex-basis: 100%; align-items: center; }
+    /* min-width:0 defeats the intrinsic min width every <input> carries, which is what
+       stops flex:1 from ever shrinking it below ~20 characters. */
+    .edit input { flex: 1; min-width: 0; font-size: 1.15rem; }
     .edit button { padding: 10px 12px; }
   </style>
 </head>
@@ -190,6 +196,7 @@ function rowFor(c) {
   row.append(flag, code);
 
   if (editing === c.code) {
+    row.classList.add('editing');
     const wrap = document.createElement('div'); wrap.className = 'edit';
     const inp = document.createElement('input');
     inp.inputMode = 'decimal'; inp.placeholder = c.code + ' amount';
@@ -221,12 +228,16 @@ function rowFor(c) {
 
   // Single-select: tapping an inactive pin moves 📍 here from wherever it was. The server
   // returns the authoritative set, so the previously-active pin clears itself on re-render.
-  const pin = document.createElement('button');
-  pin.className = 'pin' + (ACTIVE.has(c.code) ? ' on' : '');
-  pin.textContent = '📍';
-  pin.title = ACTIVE.has(c.code) ? 'active — tap to unmark' : 'make this the active currency';
-  pin.onclick = () => toggleActive(c.code, !ACTIVE.has(c.code));
-  row.append(pin);
+  // Hidden while editing — it would land on a line of its own below the editor, and
+  // pinning is not something you reach for mid-amount anyway.
+  if (editing !== c.code) {
+    const pin = document.createElement('button');
+    pin.className = 'pin' + (ACTIVE.has(c.code) ? ' on' : '');
+    pin.textContent = '📍';
+    pin.title = ACTIVE.has(c.code) ? 'active — tap to unmark' : 'make this the active currency';
+    pin.onclick = () => toggleActive(c.code, !ACTIVE.has(c.code));
+    row.append(pin);
+  }
 
   return row;
 }
