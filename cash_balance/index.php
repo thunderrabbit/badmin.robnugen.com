@@ -102,6 +102,12 @@ $active      = $active_code === '' ? [] : [$active_code];
        stops flex:1 from ever shrinking it below ~20 characters. */
     .edit input { flex: 1; min-width: 0; font-size: 1.15rem; }
     .edit button { padding: 10px 12px; }
+    .edit button[disabled] { opacity: .6; }
+    /* Refusals belong beside the finger that pressed Save. #status lives below the whole
+       board, which on a phone is behind the on-screen keyboard the focused input just
+       raised — a message there is a message nobody reads. */
+    .row.editing .msg { flex-basis: 100%; color: #b91c1c; font-size: .85rem; font-weight: 600; }
+    .row.editing .msg:empty { display: none; }
   </style>
 </head>
 <body>
@@ -153,8 +159,16 @@ const STALE_DAYS = <?php echo json_encode(CASH_STALE_DAYS); ?>;
 const $ = id => document.getElementById(id);
 const pw = $('password'), status = $('status');
 let editing = null;   // currency code currently in inline-edit mode, or null
+let editMsg = null;   // the open editor's message line (rebuilt by every render)
 
 function setStatus(msg, cls) { status.textContent = msg; status.className = cls || 'muted'; }
+
+// Every way a save can be refused, said twice: once where the user is looking (the open
+// editor) and once in the page-wide status line.
+function editError(msg) {
+  setStatus(msg, 'err');
+  if (editMsg) editMsg.textContent = msg;
+}
 
 // The password stays in the (hidden) field for the rest of the page's life — every
 // write still POSTs it, so the server contract is unchanged. Only called after the
@@ -203,11 +217,13 @@ function rowFor(c) {
     if (c.amount != null) inp.value = c.amount;
     const save = document.createElement('button'); save.textContent = 'Save';
     const cancel = document.createElement('button'); cancel.className = 'secondary'; cancel.textContent = '×';
-    save.onclick   = () => saveBalance(c.code, inp.value);
+    save.onclick   = () => saveBalance(c.code, inp.value, save);
     cancel.onclick = () => { editing = null; render(); };
-    inp.onkeydown  = e => { if (e.key === 'Enter') saveBalance(c.code, inp.value); };
+    inp.onkeydown  = e => { if (e.key === 'Enter') saveBalance(c.code, inp.value, save); };
     wrap.append(inp, save, cancel);
     row.append(wrap);
+    editMsg = document.createElement('div'); editMsg.className = 'msg';
+    row.append(editMsg);
     setTimeout(() => inp.focus(), 0);
   } else {
     const bal = document.createElement('span');
@@ -245,14 +261,28 @@ function rowFor(c) {
 function render() {
   const b = $('board');
   b.innerHTML = '';
+  editMsg = null;   // rowFor() re-creates it if a row is being edited
   BOARD.forEach(c => b.append(rowFor(c)));
 }
 
-async function saveBalance(code, rawAmount) {
-  if (!pw.value) { setStatus('Enter the password first.', 'err'); return; }
+// Re-saving an unchanged amount is a first-class action, not a no-op: save_balance.php
+// appends a fresh snapshot either way, so pressing Save on a balance you just counted and
+// found correct is how you re-date it. The button must therefore never sit there mute.
+async function saveBalance(code, rawAmount, btn) {
+  if (!pw.value) {
+    // The one refusal the user can fix without leaving the row — so bring the password
+    // box to them: un-collapse it, focus it, scroll it under their eyes.
+    editError('Password first, then press Save again.');
+    auth.hidden = false; unlocked.hidden = true;
+    pw.focus();
+    pw.scrollIntoView({ block: 'center', behavior: 'smooth' });
+    return;
+  }
   const amount = (rawAmount || '').trim();
-  if (amount === '' || isNaN(Number(amount))) { setStatus('Enter a number.', 'err'); return; }
+  if (amount === '' || isNaN(Number(amount))) { editError('Enter a number.'); return; }
+  if (editMsg) editMsg.textContent = '';
   setStatus('Saving ' + code + '…');
+  if (btn) { btn.disabled = true; btn.textContent = 'Saving…'; }
   const fd = new FormData();
   fd.append('password', pw.value);
   fd.append('currency', code);
@@ -260,14 +290,18 @@ async function saveBalance(code, rawAmount) {
   try {
     const r = await fetch('save_balance.php', { method: 'POST', body: fd });
     const j = await r.json();
-    if (!j.ok) { setStatus('Could not save: ' + (j.error || 'error'), 'err'); return; }
+    if (!j.ok) { editError('Could not save: ' + (j.error || 'error')); return; }
     markUnlocked();
     const c = BOARD.find(x => x.code === code);
     c.amount = j.amount; c.ts = j.ts;     // update the row in place
     editing = null; render();
     setStatus(code + ' updated ✓', 'ok');
   } catch (e) {
-    setStatus('Network error: ' + e.message, 'err');
+    editError('Network error: ' + e.message);
+  } finally {
+    // On the success path this button is already detached; resetting it is harmless there
+    // and is what un-sticks it on every failure path.
+    if (btn) { btn.disabled = false; btn.textContent = 'Save'; }
   }
 }
 
