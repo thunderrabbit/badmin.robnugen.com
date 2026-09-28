@@ -82,6 +82,7 @@ $MT3_WORKERS = [
   | <a href="/ai_secure/">🔒 secure 🔒</a>
   | <a href="/cash_balance/">💵 cash</a>
   | <a href="/workers/">🔧 workers</a>
+  | <a href="/peeps/">👥 peeps</a>
   <h1>🔧 MT3 worker uploader</h1>
 
   <section>
