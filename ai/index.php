@@ -55,6 +55,7 @@ require_once __DIR__ . "/item_naming.php";   // $ITEM_CATEGORIES (no side effect
   | <a href="/ai_secure/">🔒 secure 🔒</a>
   | <a href="/cash_balance/">💵 cash</a>
   | <a href="/workers/">🔧 workers</a>
+  | <a href="/peeps/">👥 peeps</a>
   <h1>📦 Name an item</h1>
 
   <section>
