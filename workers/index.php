@@ -75,6 +75,7 @@ $MT3_WORKERS = [
   </style>
 </head>
 <body>
+  <p style="background:#fde68a;color:#92400e;padding:8px 12px;margin:0 0 12px;font-weight:600">yo Rob remember to move this to badmint, since 30 Sep 2026, at Basil's house in Modbury</p>
   <a href="/">journal</a>
   | <a href="/ai/">ai</a>
   | <a href="/sayonara/">sayonara</a>

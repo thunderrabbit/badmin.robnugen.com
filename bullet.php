@@ -189,6 +189,7 @@ if($output === "json") {
 
 $encode_markdown = urlencode(implode(separator: "\n", array: $embed_markdowns));
 $n_thousand = implode(separator: "\n", array: $thousand_px);
+echo "<p style='background:#fde68a;color:#92400e;padding:8px 12px;margin:0 0 12px;font-weight:600'>yo Rob remember to move this to badmint, since 30 Sep 2026, at Basil's house in Modbury</p>";
 echo "<h1><a href='https://badmin.robnugen.com'>https://badmin.robnugen.com</a></h1><br><br>";
 
 echo "<h1><a href='https://quick.robnugen.com/poster?text=$encode_markdown'>Post as markdown</a></h1><br><br>";
