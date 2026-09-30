@@ -1,0 +1,5 @@
+# TEMPORARY (302): the cash board moved to badmint (mg #566). Temporary because
+# the badmint repo will later be served as badmin.robnugen.com itself.
+# Every path goes to the board, so an old POST to save_balance.php fails
+# rather than writing the JSONL files behind the database's back.
+RedirectMatch 302 ^/cash_balance/ https://badmint.robnugen.com/cash/
