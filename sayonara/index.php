@@ -44,7 +44,7 @@ require_once __DIR__ . "/../ai/item_naming.php";   // $ITEM_CATEGORIES, item_tag
 </head>
 <body>
   <p style="background:#fde68a;color:#92400e;padding:8px 12px;margin:0 0 12px;font-weight:600">yo Rob remember to move this to badmint, since 30 Sep 2026, at Basil's house in Modbury</p>
-  <a href="/">journal</a> | <a href="/ai/">ai</a> | <a href="/sayonara/">sayonara</a> | <a href="/ai_secure/">🔒 secure 🔒</a> | <a href="/workers/">🔧 workers</a>
+  <a href="/ai/">ai</a> | <a href="/sayonara/">sayonara</a> | <a href="/ai_secure/">🔒 secure 🔒</a> | <a href="/workers/">🔧 workers</a>
   <h1>📦 Sayonara item uploader</h1>
 
   <section>
