@@ -1,0 +1,5 @@
+# TEMPORARY (302): honor-an-item moved to badmint (mg #700). Temporary because
+# the badmint repo will later be served as badmin.robnugen.com itself.
+# Every path goes to the page, so an old POST to describe.php or confirm.php
+# is not answered here.
+RedirectMatch 302 ^/items/ https://badmint.robnugen.com/items/
