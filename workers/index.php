@@ -79,11 +79,8 @@ $MT3_WORKERS = [
   <a href="/">journal</a>
   | <a href="/ai/">ai</a>
   | <a href="/sayonara/">sayonara</a>
-  | <a href="/items/">🏠 items</a>
   | <a href="/ai_secure/">🔒 secure 🔒</a>
-  | <a href="/cash_balance/">💵 cash</a>
   | <a href="/workers/">🔧 workers</a>
-  | <a href="/peeps/">👥 peeps</a>
   <h1>🔧 MT3 worker uploader</h1>
 
   <section>
