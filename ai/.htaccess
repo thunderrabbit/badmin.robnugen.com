@@ -1,0 +1,7 @@
+# TEMPORARY (302): name-an-item moved to badmint (mg #701). Temporary because
+# the badmint repo will later be served as badmin.robnugen.com itself.
+# Every path goes to the page, so an old POST to name_item.php or
+# confirm_item.php is not answered here. ai_secure/ still require_once's
+# item_naming.php from this directory; require ignores .htaccess, and
+# ^/ai/ does not match /ai_secure/.
+RedirectMatch 302 ^/ai/ https://badmint.robnugen.com/ai/
