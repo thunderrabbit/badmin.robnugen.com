@@ -8,15 +8,14 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-This is a PHP-based image upload and management system called "badmin" (b.robnugen.com admin). It provides a web interface for uploading multiple images with descriptions, organizing them into categorized directories, and generating markdown embed codes for use in blogs and Signal messaging.
+This is "badmin" (b.robnugen.com admin), the PHP image tools that have not yet moved to badmint. The bulk upload form (mg #706) and the MT3 Worker/Part photo uploads (mg #709, `bullet.php` and `workers/`) now live on badmint; `index.php` and `workers/` only point there.
 
 ## Architecture
 
-- **index.php**: upload form — 12 image slots, category dropdown, date prefixing
-- **bullet.php**: upload processing — file handling, image resizing, embed-code generation. The worker functions all live here (`grep "^function" bullet.php` for the current list).
+- **index.php**: the menu and a link to badmint's upload page
+- **image_resize_lib.php**: the shared resize/thumbnail/embed helpers the remaining pages (`ai/`, `items/`, `peeps/`, …) call
+- **autocrop_lib.php**: blue-felt subject detection, kept for `tools/autocrop_selftest.php` (badmint's `Mt3\Autocrop` is a port of it)
 - **bulletproof_config_sample.php**: template for the password-hash config
-
-Category → on-disk path mapping is defined in `determine_storage_directory()` in bullet.php — that function is the source of truth (the index.php dropdown is the user-facing label list). Don't trust a copied table here; read the function.
 
 ## Environment / Deployment
 
@@ -35,4 +34,3 @@ Category → on-disk path mapping is defined in `determine_storage_directory()` 
 ## Configuration
 
 - Set the password hash in `bulletproof_config.php` (copy `bulletproof_config_sample.php`); auth uses `password_verify()`.
-- `debug_level` request param controls upload output verbosity (0 = quiet).

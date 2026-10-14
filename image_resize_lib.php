@@ -2,9 +2,9 @@
 /**
  * image_resize_lib.php — shared image-processing + URL/embed helpers.
  *
- * Extracted verbatim from bullet.php so both the legacy bulk uploader
- * (bullet.php) and the new single-item AI flow (ai/confirm_item.php) call
- * the SAME resize/thumbnail/embed code. No behavior change for bullet.php.
+ * Extracted verbatim from the old bulk uploader (bullet.php, retired in favour of
+ * badmint, mg #706/#709) so the single-item flows (ai/confirm_item.php, items/,
+ * peeps/) share the SAME resize/thumbnail/embed code.
  *
  * Depends on the external Bulletproof library at /home/thundergoblin/bulletproof/.
  */
