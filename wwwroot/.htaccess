@@ -1,0 +1,6 @@
+# The only thing badmint.robnugen.com serves since the 2026-10-24 domain swap.
+# TEMPORARY: /dl/ links sent before the swap now live on badmin.robnugen.com.
+# Self-expires 2026-11-01 (server time); delete wwwroot/ any time after.
+RewriteEngine on
+RewriteCond %{TIME} <20261101000000
+RewriteRule ^dl/(.*)$ https://badmin.robnugen.com/dl/$1 [R=302,L,QSA]
